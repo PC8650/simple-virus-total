@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: simple-virus-total
+  servlet:
+    multipart:
+      max-file-size: 650MB
+      max-request-size: 651MB
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    layout: BaseLayout
+
+api-key:
