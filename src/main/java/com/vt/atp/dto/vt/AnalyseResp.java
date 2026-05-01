@@ -1,16 +1,16 @@
-package com.vt.atp.dto.vt.file;
+package com.vt.atp.dto.vt;
 
-import com.vt.atp.dto.vt.AnalyseResult;
-import com.vt.atp.dto.vt.AnalyseStats;
-import com.vt.atp.dto.vt.Link;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.Map;
 
-@Schema(description = "文件分析响应")
-public record FileAnalyseResp(
-
-        @Schema(description = "文件id f-<sha256>-<timestamp>")
+@Schema(description = "分析结果响应")
+public record AnalyseResp(
+        @Schema(description = """
+                分析id
+                文件：文件id f-<sha256>-<timestamp>
+                URL：u-sha256-timestamp(低位十六进制)
+                """)
         String id,
 
         @Schema(description = "类型")

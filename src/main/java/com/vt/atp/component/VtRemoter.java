@@ -3,6 +3,7 @@ package com.vt.atp.component;
 import com.google.api.client.http.*;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.vt.atp.dto.Result;
 import com.vt.atp.exception.WrapperException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -28,6 +29,22 @@ public class VtRemoter {
     public <T> T get(String url, TypeToken<T> typeToken) {
         HttpRequest request = requestConstruct(false, url, null);
         return remote(request, typeToken);
+    }
+
+    /**
+     * post 并只返回响应包装的data
+     */
+    public <T> T postResultData(String url, HttpContent content, Class<T> clazz) {
+        Result<T> result = post(url, content, new  TypeToken<Result<T>>() {});
+        return result.getData();
+    }
+
+    /**
+     * get 并只返回响应包装的data
+     */
+    public <T> T getResultData(String url, Class<T> clazz) {
+        Result<T> result = get(url, new TypeToken<Result<T>>() {});
+        return result.getData();
     }
 
     /**

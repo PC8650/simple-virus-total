@@ -1,4 +1,4 @@
-package com.vt.atp.api.file;
+package com.vt.atp.api;
 
 
 import com.google.api.client.http.EmptyContent;
@@ -9,10 +9,9 @@ import com.vt.atp.api.constant.SizeConstant;
 import com.vt.atp.component.VtRemoter;
 import com.vt.atp.dto.FileUploadParse;
 import com.vt.atp.dto.Result;
-import com.vt.atp.dto.vt.file.FileAnalyseResp;
 import com.vt.atp.dto.vt.file.FileBehaviourReportResp;
 import com.vt.atp.dto.vt.file.FileReportResp;
-import com.vt.atp.dto.vt.file.FileUploadResp;
+import com.vt.atp.dto.vt.file.FileScanResp;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -30,7 +29,7 @@ public class FileApi {
      * @param uploadParse 上传文件信息
      * @return 文件id及分析结果链接
      */
-    public Result<FileUploadResp> uploadFile(FileUploadParse uploadParse) {
+    public Result<FileScanResp> uploadFile(FileUploadParse uploadParse) {
         if (SizeConstant.SIZE_LIMIT < uploadParse.size()) {
             throw new IllegalArgumentException(String.format("file size large than %sM", SizeConstant.SIZE_LIMIT));
         }
@@ -41,23 +40,13 @@ public class FileApi {
     }
 
     /**
-     * 获取分析
-     * @param id 上传文件的id 或者 SHA-256, SHA-1 or MD5 identifying the file
-     * @return 分析
-     */
-    public Result<FileAnalyseResp> getFileAnalyse(String id) {
-        String url = ApiConstant.PREFIX + ApiConstant.GET_ANALYSE + id;
-        return vtRemoter.get(url, new TypeToken<Result<FileAnalyseResp>>() {});
-    }
-
-    /**
      * 重新分析文件
      * @param id 文件id （SHA-256, SHA-1 or MD5 identifying the file）
      * @return 文件id及分析结果链接
      */
-    public Result<FileUploadResp> reAnalyze(String id) {
-        String url = String.format(ApiConstant.PREFIX + ApiConstant.RE_ANALYSE, id);
-        return vtRemoter.post(url, new EmptyContent(), new TypeToken<Result<FileUploadResp>>() {});
+    public Result<FileScanResp> reAnalyze(String id) {
+        String url = String.format(ApiConstant.PREFIX + ApiConstant.RE_ANALYSE_FILE, id);
+        return vtRemoter.post(url, new EmptyContent(), new TypeToken<Result<FileScanResp>>() {});
     }
 
     /**
@@ -66,7 +55,7 @@ public class FileApi {
      * @return 报告
      */
     public Result<FileReportResp> getFileReport(String id) {
-        String url = ApiConstant.PREFIX + ApiConstant.GET_REPORT + id;
+        String url = String.format(ApiConstant.PREFIX + ApiConstant.GET_FILE_REPORT, id);
         return vtRemoter.get(url, new TypeToken<Result<FileReportResp>>() {});
     }
 
@@ -105,9 +94,9 @@ public class FileApi {
      * @param url vt上传接口
      * @return 文件id
      */
-    private Result<FileUploadResp> upload(FileUploadParse uploadParse, String url) {
+    private Result<FileScanResp> upload(FileUploadParse uploadParse, String url) {
         MultipartContent content = uploadParse.uploadForm();
-        return vtRemoter.post(url, content, new TypeToken<Result<FileUploadResp>>() {});
+        return vtRemoter.post(url, content, new TypeToken<Result<FileScanResp>>() {});
     }
 
     /**

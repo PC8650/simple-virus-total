@@ -1,13 +1,12 @@
 package com.vt.atp.controller;
 
-import com.vt.atp.api.file.FileApi;
+import com.vt.atp.api.FileApi;
 import com.vt.atp.dto.FileUpload;
 import com.vt.atp.dto.FileUploadParse;
 import com.vt.atp.dto.Result;
-import com.vt.atp.dto.vt.file.FileAnalyseResp;
 import com.vt.atp.dto.vt.file.FileBehaviourReportResp;
 import com.vt.atp.dto.vt.file.FileReportResp;
-import com.vt.atp.dto.vt.file.FileUploadResp;
+import com.vt.atp.dto.vt.file.FileScanResp;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,18 +20,13 @@ public class FileController {
     private final FileApi fileApi;
 
     @PostMapping("/upload")
-    public Result<FileUploadResp> upload(@ModelAttribute FileUpload fileUpload) {
+    public Result<FileScanResp> upload(@ModelAttribute FileUpload fileUpload) {
         FileUploadParse uploadParse = fileUpload.parse();
         return fileApi.uploadFile(uploadParse);
     }
 
-    @GetMapping("/get/analyse/{id}")
-    public Result<FileAnalyseResp> getAnalyse(@PathVariable String id) {
-        return fileApi.getFileAnalyse(id);
-    }
-
     @PostMapping("/re/analyse/{id}")
-    public Result<FileUploadResp> reAnalyse(@PathVariable String id) {
+    public Result<FileScanResp> reAnalyse(@PathVariable String id) {
         return fileApi.reAnalyze(id);
     }
 

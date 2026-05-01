@@ -1,31 +1,30 @@
 package com.vt.atp.dto.vt;
 
 import com.google.gson.annotations.SerializedName;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-/**
- * 分析结果
- */
+@Schema(description = "分析结果")
 public record AnalyseResult(
 
-        //分析方法
+        @Schema(description = "分析方法")
         String method,
 
-        //引擎名称
         @SerializedName("engine_name")
+        @Schema(name = "engine_name", description = "引擎名称")
         String engineName,
 
-        //引擎版本
         @SerializedName("engine_version")
+        @Schema(name = "engine_version", description = "引擎版本")
         String engineVersion,
 
-        //引擎更新日期 yyyyMMdd
         @SerializedName("engine_update")
+        @Schema(name = "engine_update", description = "引擎更新日期 yyyyMMdd")
         String engineUpdate,
 
-        //结果分类
+        @Schema(description = "结果分类")
         String category,
 
-        //分析结果
+        @Schema(description = "分析结果")
         String result
 ) {
 }
