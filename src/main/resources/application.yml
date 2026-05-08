@@ -5,6 +5,13 @@ spring:
     multipart:
       max-file-size: 650MB
       max-request-size: 651MB
+  threads:
+    virtual:
+      enabled: true
+  ai:
+    google:
+      genai:
+        api-key: 1
 
 springdoc:
   api-docs:
