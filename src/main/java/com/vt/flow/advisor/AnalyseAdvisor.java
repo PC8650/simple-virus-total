@@ -11,7 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.awaitility.Awaitility;
 import org.awaitility.core.ConditionFactory;
 import org.awaitility.core.ConditionTimeoutException;
-import org.awaitility.pollinterval.IterativePollInterval;
+import org.awaitility.pollinterval.FixedPollInterval;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.ai.chat.client.ChatClientRequest;
 import org.springframework.ai.chat.client.ChatClientResponse;
@@ -37,10 +37,8 @@ public class AnalyseAdvisor implements CallAdvisor {
 
     private final ConditionFactory conditionFactory = Awaitility.given()
             .pollThread(virtualThreadBuilder::start)
-            .pollInterval(
-                    new IterativePollInterval((duration) -> duration.multipliedBy(2), Duration.ofSeconds(3))
-            )
-            .atMost(Duration.ofSeconds(60));
+            .pollInterval(new FixedPollInterval(Duration.ofSeconds(15)))
+            .atMost(Duration.ofSeconds(120));
 
     private VtResult<AnalyseResp> analyse(Scanner scanner, String analyseId) {
         try {
@@ -70,7 +68,7 @@ public class AnalyseAdvisor implements CallAdvisor {
 
         //判断最近分析时间是否超过一天
         Long date = analyseResp.getData().attributes().date();
-        LocalDate lastDate = Instant.ofEpochMilli(date)
+        LocalDate lastDate = Instant.ofEpochSecond(date)
                 .atZone(ZoneId.systemDefault())
                 .toLocalDate();
         if (lastDate.isBefore(LocalDate.now())) {

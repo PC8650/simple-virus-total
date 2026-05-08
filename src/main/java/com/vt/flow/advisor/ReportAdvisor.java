@@ -10,7 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.awaitility.Awaitility;
 import org.awaitility.core.ConditionFactory;
 import org.awaitility.core.ConditionTimeoutException;
-import org.awaitility.pollinterval.IterativePollInterval;
+import org.awaitility.pollinterval.FixedPollInterval;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.ai.chat.client.ChatClientRequest;
 import org.springframework.ai.chat.client.ChatClientResponse;
@@ -31,9 +31,7 @@ public class ReportAdvisor implements CallAdvisor {
 
     private final ConditionFactory conditionFactory = Awaitility.given()
             .pollThread(virtualThreadBuilder::start)
-            .pollInterval(
-                    new IterativePollInterval((duration) -> duration.multipliedBy(2), Duration.ofSeconds(3))
-            )
+            .pollInterval(new FixedPollInterval(Duration.ofSeconds(15)))
             .atMost(Duration.ofSeconds(300));
 
     public VtResult<?> getBehaviourReport(Scanner scanner, String reportId) {
