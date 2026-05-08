@@ -73,7 +73,7 @@ public class AnalyseAdvisor implements CallAdvisor {
         LocalDate lastDate = Instant.ofEpochMilli(date)
                 .atZone(ZoneId.systemDefault())
                 .toLocalDate();
-        if (LocalDate.now().isBefore(lastDate)) {
+        if (lastDate.isBefore(LocalDate.now())) {
             //超过一天，重新分析
             VtResult<? extends UploadScanResp> reAnalyzeResp = scanner.reAnalyze(chatClientRequest);
             if (!reAnalyzeResp.isSuccess()) {
