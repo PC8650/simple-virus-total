@@ -3,8 +3,8 @@ package com.vt.remote.component;
 import com.google.api.client.http.*;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.vt.exception.WrapperException;
 import com.vt.remote.dto.VtResult;
+import com.vt.exception.WrapperException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -71,7 +71,7 @@ public class VtRemoter {
         try {
             response = request.execute();
         }catch (Exception e){
-            throw new WrapperException("virus total 调用失败", e);
+            throw new WrapperException("virus total 调用失败: " + e.getMessage(), e);
         }
 
         try {

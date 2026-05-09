@@ -1,90 +1,82 @@
 package com.vt.flow.advisor;
 
+import com.vt.exception.WrapperException;
 import com.vt.flow.advisor.constant.ChainKey;
-import com.vt.flow.advisor.utils.ErrorRespUtil;
+import com.vt.flow.utils.FlowSseUtil;
 import com.vt.flow.scan.interfaces.Scanner;
+import com.vt.flow.utils.PollUtil;
 import com.vt.remote.api.AnalyseApi;
 import com.vt.remote.dto.VtResult;
 import com.vt.remote.dto.vt.AnalyseResp;
 import com.vt.remote.dto.vt.abs.UploadScanResp;
 import lombok.RequiredArgsConstructor;
-import org.awaitility.Awaitility;
-import org.awaitility.core.ConditionFactory;
-import org.awaitility.core.ConditionTimeoutException;
-import org.awaitility.pollinterval.FixedPollInterval;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.ai.chat.client.ChatClientRequest;
 import org.springframework.ai.chat.client.ChatClientResponse;
-import org.springframework.ai.chat.client.advisor.api.CallAdvisor;
-import org.springframework.ai.chat.client.advisor.api.CallAdvisorChain;
+import org.springframework.ai.chat.client.advisor.api.StreamAdvisor;
+import org.springframework.ai.chat.client.advisor.api.StreamAdvisorChain;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Flux;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * 分析顾问，通过扫描响应的分析id，轮询分析状态直到超时或完成
  */
 @Component
 @RequiredArgsConstructor
-public class AnalyseAdvisor implements CallAdvisor {
+public class AnalyseAdvisor implements StreamAdvisor {
 
     private final AnalyseApi api;
 
-    private final Thread.Builder virtualThreadBuilder = Thread.ofVirtual().name("Analyse-", 0);
-
-    private final ConditionFactory conditionFactory = Awaitility.given()
-            .pollThread(virtualThreadBuilder::start)
-            .pollInterval(new FixedPollInterval(Duration.ofSeconds(15)))
-            .atMost(Duration.ofSeconds(120));
-
-    private VtResult<AnalyseResp> analyse(Scanner scanner, String analyseId) {
-        try {
-            return conditionFactory.until(
-                    () -> scanner.apiRemote(() -> api.analyse(analyseId)),
-                    (resp) -> !resp.isSuccess() || "completed".equals(resp.getData().attributes().status())
-            );
-        }catch (ConditionTimeoutException e) {
-            VtResult<AnalyseResp> analyseResp = new VtResult<>();
-            analyseResp.setError("Analyse Timeout");
-            return analyseResp;
-        }
+    private VtResult<AnalyseResp> analyse(Scanner scanner, String analyseId, ChatClientRequest chatClientRequest) {
+        AtomicReference<String> status = new AtomicReference<>("");
+        return PollUtil.poll(300000L, 15000L,
+                () -> {
+                    FlowSseUtil.sendNotMainText(chatClientRequest, getName(),
+                            "轮询分析状态 (15s 间隔, 上限5m)... ID: " + analyseId + " STATUS: " + status.get());
+                    VtResult<AnalyseResp> analyseResp = scanner.apiRemote(() -> api.analyse(analyseId));
+                    if (analyseResp.isSuccess()) status.set(analyseResp.getData().attributes().status());
+                    return analyseResp;
+                },
+                (r) -> !r.isSuccess() || "completed".equals(r.getData().attributes().status()));
     }
 
     @NotNull
     @Override
-    public ChatClientResponse adviseCall(@NotNull ChatClientRequest chatClientRequest, @NotNull CallAdvisorChain callAdvisorChain) {
+    @SuppressWarnings("unchecked")
+    public Flux<ChatClientResponse> adviseStream(@NotNull ChatClientRequest chatClientRequest, @NotNull StreamAdvisorChain streamAdvisorChain) {
+        ChainKey.CURRENT.get(chatClientRequest).set(getName());
         Scanner scanner = ChainKey.SCANNER.get(chatClientRequest);
         UploadScanResp scanResp = ChainKey.SCAN_RESP.get(chatClientRequest);
         String analyseId = scanResp.getId();
 
-        VtResult<AnalyseResp> analyseResp = analyse(scanner, analyseId);
+        VtResult<AnalyseResp> analyseResp = analyse(scanner, analyseId, chatClientRequest);
 
-        if (!analyseResp.isSuccess()) {
-            return ErrorRespUtil.buildErrorResp(chatClientRequest, analyseResp.getError());
-        }
+        if (!analyseResp.isSuccess())
+            throw new WrapperException(analyseResp.getError());
 
-        //判断最近分析时间是否超过一天
+        // 判断最近分析时间是否超过一天
         Long date = analyseResp.getData().attributes().date();
         LocalDate lastDate = Instant.ofEpochSecond(date)
                 .atZone(ZoneId.systemDefault())
                 .toLocalDate();
         if (lastDate.isBefore(LocalDate.now())) {
-            //超过一天，重新分析
+            // 超过一天，重新分析
+            FlowSseUtil.sendNotMainText(chatClientRequest, getName(), "获取到陈旧报告记录，提交重新分析");
             VtResult<? extends UploadScanResp> reAnalyzeResp = scanner.reAnalyze(chatClientRequest);
-            if (!reAnalyzeResp.isSuccess()) {
-                return ErrorRespUtil.buildErrorResp(chatClientRequest, "ReAnalyze Error: " + reAnalyzeResp.getError());
-            }
-            //重新获取分析状态
-            analyseResp = analyse(scanner, reAnalyzeResp.getData().getId());
-            if (!analyseResp.isSuccess()) {
-                return ErrorRespUtil.buildErrorResp(chatClientRequest, analyseResp.getError());
-            }
+            if (!reAnalyzeResp.isSuccess())
+                throw new WrapperException(reAnalyzeResp.getError());
+            // 重新获取分析状态
+            analyseResp = analyse(scanner, reAnalyzeResp.getData().getId(), chatClientRequest);
+            if (!analyseResp.isSuccess())
+                throw new WrapperException(analyseResp.getError());
         }
 
-        return callAdvisorChain.nextCall(chatClientRequest);
+        return streamAdvisorChain.nextStream(chatClientRequest);
     }
 
     @NotNull

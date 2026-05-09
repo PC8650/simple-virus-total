@@ -12,6 +12,11 @@ spring:
     google:
       genai:
         api-key: 1
+        chat:
+          options:
+            temperature: 0
+            top-p: 0.8
+            model: gemma-4-31b-it
 
 springdoc:
   api-docs:

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Threat Intel | VirusTotal 深度分析</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- 控制面板 -->
+        <aside class="sidebar">
+            <div class="brand">
+                <h1>AI Threat Intel</h1>
+            </div>
+
+            <form id="scanForm">
+                <div class="form-group">
+                    <label for="type">分析类型</label>
+                    <select id="type" name="type" required>
+                        <option value="FILE">文件分析 (FILE)</option>
+                        <option value="URL">网址分析 (URL)</option>
+                        <option value="IP">IP 地址分析 (IP)</option>
+                        <option value="DOMAIN">域名分析 (DOMAIN)</option>
+                    </select>
+                </div>
+
+                <!-- 动态输入区 -->
+                <div id="payloadGroup" class="form-group hidden">
+                    <label for="payload">载荷 (URL/IP/Domain)</label>
+                    <input type="text" id="payload" name="payload" placeholder="请输入分析目标...">
+                </div>
+
+                <div id="fileGroup" class="form-group">
+                    <label for="file">目标文件</label>
+                    <input type="file" id="file" name="file">
+                </div>
+
+                <div id="pwdGroup" class="form-group">
+                    <label for="pwd">压缩包密码 (可选)</label>
+                    <input type="password" id="pwd" name="pwd" placeholder="若为加密压缩包请填写...">
+                </div>
+
+                <div class="form-group">
+                    <label for="language">报告语言</label>
+                    <select id="language" name="language">
+                        <option value="zh-CN">简体中文</option>
+                        <option value="en-US">English</option>
+                    </select>
+                </div>
+
+                <button type="submit" id="submitBtn" class="btn-scan">
+                    <span id="btnText">立即启动分析</span>
+                    <div id="loader" class="hidden">...</div>
+                </button>
+            </form>
+        </aside>
+
+        <!-- 分析实况 -->
+        <main class="main-content">
+            <div id="logContainer" class="log-container">
+                <!-- 初始状态 -->
+                <div class="node-section">
+                    <div class="node-header">系统准备就绪</div>
+                    <div class="log-entry non-main">等待输入指令以启动 AI 威胁分析流...</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

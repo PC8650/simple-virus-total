@@ -1,6 +1,7 @@
 package com.vt.flow.dto;
 
 
+import com.vt.flow.enums.TypeEnum;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.experimental.Accessors;
@@ -11,7 +12,7 @@ import lombok.experimental.Accessors;
 public class ReportContent {
 
     @Schema(description = "类型")
-    private String type;
+    private TypeEnum type;
 
     @Schema(description = "gui访问链接")
     private String url;

@@ -22,9 +22,6 @@ public class VtResult<T> {
     @Schema(description = "错误信息")
     private String error;
 
-    @Schema(description = "操作状态。非返回值，需手动处理")
-    private String status;
-
     public static VtResult<?> error(String error) {
         VtResult<?> vtResult = new VtResult<>();
         vtResult.error = error;
