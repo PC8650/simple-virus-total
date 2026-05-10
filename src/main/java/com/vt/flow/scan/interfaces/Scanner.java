@@ -11,6 +11,11 @@ import java.util.function.Supplier;
 public interface Scanner {
 
     /**
+     * 参数校验
+     */
+    void valid(InputContent input);
+
+    /**
      * 扫描指定目标
      */
     VtResult<? extends UploadScanResp> scan(InputContent input);
@@ -38,15 +43,20 @@ public interface Scanner {
     }
 
     /**
+     * 获取行为报告中的ATT&CK汇总信息
+     */
+    default VtResult<?> getBehaviourMitre(String id) {
+        return new VtResult<>();
+    }
+
+    /**
      * api 调用
      */
-    default <T> VtResult<T> apiRemote(Supplier<VtResult<T>> remote) {
-        VtResult<T> result = new VtResult<>();
-        try {
-            result =  remote.get();
-        } catch (Exception e) {
-            result.setError(e.getMessage());
-        }
+    default <T> VtResult<T> apiRemote(Supplier<VtResult<T>> remote, String remark) {
+        VtResult<T> result;
+        result =  remote.get();
+        //不成功就抛出异常，终止流程
+        if (!result.isSuccess()) throw new RuntimeException(remark + result.getError());
         return result;
     }
 

@@ -26,15 +26,16 @@ public class IpScanner implements Scanner {
     private final InetAddressValidator validator = InetAddressValidator.getInstance();
 
     @Override
+    public void valid(InputContent input) {
+        if (!validator.isValid(input.getPayload())) {
+            throw new IllegalArgumentException("Wrong ip format");
+        }
+    }
+
+    @Override
     public VtResult<? extends UploadScanResp> scan(InputContent input) {
         String payload = input.getPayload();
-        if (!validator.isValid(payload)) {
-            VtResult<? extends UploadScanResp> result = new VtResult<>();
-            result.setError("Wrong ip format");
-            return result;
-        }
-
-        return apiRemote(() -> api.scanIp(payload));
+        return apiRemote(() -> api.scanIp(payload), "Ip scan failed: ");
     }
 
     @Override
@@ -45,12 +46,12 @@ public class IpScanner implements Scanner {
 
     @Override
     public VtResult<? extends UploadScanResp> reAnalyze(String target) {
-        return apiRemote(() -> api.scanIp(target));
+        return apiRemote(() -> api.scanIp(target), "Ip scan failed: ");
     }
 
     @Override
     public VtResult<?> getReport(String id) {
-        return apiRemote(() -> api.getIpReport(id));
+        return apiRemote(() -> api.getIpReport(id), "Ip report fetching failed: ");
     }
 
     @Override

@@ -1,6 +1,5 @@
 package com.vt.flow.advisor;
 
-import com.vt.exception.WrapperException;
 import com.vt.flow.advisor.constant.ChainKey;
 import com.vt.flow.utils.FlowSseUtil;
 import com.vt.flow.dto.ReportContent;
@@ -17,8 +16,6 @@ import org.springframework.ai.chat.client.advisor.api.StreamAdvisorChain;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
-import java.util.concurrent.atomic.AtomicReference;
-
 /**
  * 报告顾问。获取报告
  */
@@ -26,18 +23,18 @@ import java.util.concurrent.atomic.AtomicReference;
 @RequiredArgsConstructor
 public class ReportAdvisor implements StreamAdvisor {
 
+    private final String metaKey = "sandboxes_in_progress";
+
     public VtResult<?> getBehaviourReport(Scanner scanner, String reportId, ChatClientRequest chatClientRequest) {
-        AtomicReference<String> process = new AtomicReference<>("");
+        FlowSseUtil.sendNotMainText(chatClientRequest, getName(), "开始轮询沙箱行为分析状态... ID: " + reportId);
         return PollUtil.poll(600000L, 15000L,
                 () -> {
-                    FlowSseUtil.sendNotMainText(chatClientRequest, getName(), "轮询沙箱行为分析状态 (15s 间隔, 上限10m)... ID: " + reportId + " PROCESS: " + process.get());
                     VtResult<?> behaviourReport = scanner.getBehaviourReport(reportId);
-                    if (behaviourReport.isSuccess()) {
-                        process.set(behaviourReport.getMeta().getOrDefault("sandboxes_in_progress", "").toString());
-                    }
+                    String process = behaviourReport.getMeta().getOrDefault(metaKey, "[]").toString();
+                    FlowSseUtil.sendNotMainText(chatClientRequest, getName(), "轮询沙箱行为分析状态 (15s 间隔, 上限10m)... PROCESS: " + process);
                     return behaviourReport;
                 },
-                (r) -> !r.isSuccess() || !r.getMeta().containsKey("sandboxes_in_progress")
+                (r) -> !r.getMeta().containsKey(metaKey)
         );
     }
 
@@ -47,23 +44,23 @@ public class ReportAdvisor implements StreamAdvisor {
     public Flux<ChatClientResponse> adviseStream(@NotNull ChatClientRequest chatClientRequest, @NotNull StreamAdvisorChain streamAdvisorChain) {
         ChainKey.CURRENT.get(chatClientRequest).set(getName());
         Scanner scanner = ChainKey.SCANNER.get(chatClientRequest);
-        String reportId = scanner.getReportId(chatClientRequest);
+        String reportId = ChainKey.CACHE.get(chatClientRequest).getReportId();
 
         // 获取报告
         FlowSseUtil.sendNotMainText(chatClientRequest, getName(), "拉取分析报告... ID: " + reportId);
         VtResult<?> report = scanner.getReport(reportId);
-        if (!report.isSuccess()) {
-            throw new WrapperException("Report fetch failed: " + report.getError());
-        }
 
         // 获取行为报告
         TypeEnum type = scanner.type();
         Object behaviourReportData = null;
+        Object behaviourMitreData = null;
         if (TypeEnum.FILE.equals(type)) {
             VtResult<?> behaviourReport = getBehaviourReport(scanner, reportId, chatClientRequest);
-            if (!behaviourReport.isSuccess())
-                throw new WrapperException("Behaviour Report fetch failed: " + report.getError());
             behaviourReportData = behaviourReport.getData();
+            //获取 战术/技术 汇总
+            FlowSseUtil.sendNotMainText(chatClientRequest, getName(), "开始获取  ATT&CK 汇总信息... ID: " + reportId);
+            VtResult<?> behaviourMitre = scanner.getBehaviourMitre(reportId);
+            behaviourMitreData =  behaviourMitre.getData();
         }
 
         FlowSseUtil.sendNotMainText(chatClientRequest, getName(), "汇总报告数据 " + reportId);
@@ -72,7 +69,8 @@ public class ReportAdvisor implements StreamAdvisor {
                 .setType(type)
                 .setUrl(type.guiUrl(reportId))
                 .setReport(report.getData())
-                .setBehaviour(behaviourReportData);
+                .setBehaviour(behaviourReportData)
+                .setMitre(behaviourMitreData);
 
         ChainKey.REPORT_SUMMARY.put(chatClientRequest, reportContent);
 

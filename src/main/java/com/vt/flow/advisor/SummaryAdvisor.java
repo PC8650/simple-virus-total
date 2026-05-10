@@ -42,14 +42,14 @@ public class SummaryAdvisor implements StreamAdvisor {
         FlowSseUtil.sendNotMainText(chatClientRequest, getName(), "数据采集完成，启动深度分析...");
 
         String sysPrompt = reportContent.getType().getSkill().getSkillContent();
-        if (!StringUtils.hasText(sysPrompt))
-            throw new WrapperException("Failed to load skill content");
+        if (!StringUtils.hasText(sysPrompt)) throw new WrapperException("Failed to load skill content");
 
         // 将 JSON 数据作为用户提示词，并加上明确的分析引导语
         InputContent inputContent = ChainKey.INPUT.get(chatClientRequest);
-        String usrPrompt = String.format("请根据以下提供的原始 JSON 数据，严格执行你系统提示词中的专家分析流程，并使用使用语言[%s]输出结果：\n",
-                inputContent.getLanguage())
-                + gson.toJson(reportContent);
+        String usrPrompt =
+                String.format(
+                        "请根据以下提供的原始 JSON 数据，严格执行你系统提示词中的专家分析流程，并使用使用语言[%s]输出结果：\n", inputContent.getLanguage()
+                ) + gson.toJson(reportContent);
 
         Message systemMessage = new SystemMessage(sysPrompt);
         Message userMessage = new UserMessage(usrPrompt);

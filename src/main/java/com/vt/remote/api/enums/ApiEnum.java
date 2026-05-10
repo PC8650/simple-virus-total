@@ -11,6 +11,8 @@ public enum ApiEnum {
     RE_ANALYSE_FILE("/files/", "/analyse", true, "post", "重新分析文件"),
     GET_FILE_REPORT("/files/", "", true, "get", "文件报告"),
     GET_BEHAVIOUR_REPORT("/files/", "/behaviours", true, "get", "文件行为报告"),
+    GET_MITRE_TREE("/files/", "/behaviour_mitre_trees", true, "get", "文件行为战术/技术汇总"),
+    GET_ACTIVE_SUMMARY("/files/", "/behaviour_summary", true, "get", "文件活动汇总"),
     SCAN_URL("/urls", "", false, "post", "扫描url"),
     RE_ANALYSE_URL("/urls/", "/analyse", true, "post", "重新分析url"),
     GET_URL_REPORT("/urls/", "", true, "get", "url 报告"),

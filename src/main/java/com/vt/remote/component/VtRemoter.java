@@ -6,11 +6,13 @@ import com.google.gson.reflect.TypeToken;
 import com.vt.remote.dto.VtResult;
 import com.vt.exception.WrapperException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
  * virus total 调用器
  */
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class VtRemoter {
@@ -74,10 +76,12 @@ public class VtRemoter {
             throw new WrapperException("virus total 调用失败: " + e.getMessage(), e);
         }
 
+        String body = "";
         try {
-            String body = response.parseAsString();
+            body = response.parseAsString();
             return gson.fromJson(body, typeToken.getType());
         }catch (Exception e){
+            log.info("virus total response: {}", body);
             throw new WrapperException("virus total 响应解析异常", e);
         }
     }

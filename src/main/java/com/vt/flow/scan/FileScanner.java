@@ -27,16 +27,18 @@ public class FileScanner implements Scanner {
     private final TypeEnum type = TypeEnum.FILE;
 
     @Override
-    public VtResult<? extends UploadScanResp> scan(InputContent input) {
+    public void valid(InputContent input) {
         if (input.getFile() == null) {
-            VtResult<? extends UploadScanResp> result = new VtResult<>();
-            result.setError("Must choose a file");
-            return result;
+            throw new IllegalArgumentException("Must choose a file");
         }
+    }
+
+    @Override
+    public VtResult<? extends UploadScanResp> scan(InputContent input) {
         FileUpload upload = new FileUpload();
         upload.setFile(input.getFile());
         upload.setPwd(input.getPwd());
-        return apiRemote(() -> api.uploadFile(upload.parse()));
+        return apiRemote(() -> api.uploadFile(upload.parse()), "File scan failed: ");
     }
 
     @Override
@@ -47,25 +49,22 @@ public class FileScanner implements Scanner {
 
     @Override
     public VtResult<? extends UploadScanResp> reAnalyze(String target) {
-        return apiRemote(() -> api.reAnalyze(target));
+        return api.reAnalyze(target);
     }
 
     @Override
     public VtResult<?> getReport(String id) {
-        VtResult<?> report = apiRemote(()-> api.getFileReport(id));
-        if (!report.isSuccess()) {
-            report.setError("File report fetching failed: " + report.getError());
-        }
-        return report;
+        return apiRemote(()-> api.getFileReport(id), "File report fetching failed: " );
     }
 
     @Override
-    public VtResult<?> getBehaviourReport(String id) {
-        VtResult<List<FileBehaviourReportResp>> behaviour = apiRemote(()-> api.getBehaviourReport(id));
-        if (!behaviour.isSuccess()) {
-            behaviour.setError("File behaviour fetching failed: " + behaviour.getError());
-        }
-        return behaviour;
+    public VtResult<List<FileBehaviourReportResp>> getBehaviourReport(String id) {
+        return apiRemote(()-> api.getBehaviourReport(id), "File behaviour fetching failed: " );
+    }
+
+    @Override
+    public VtResult<?> getBehaviourMitre(String id) {
+        return apiRemote(() -> api.getMitreTrees(id), "File behaviour mitre fetching failed: ");
     }
 
     @Override

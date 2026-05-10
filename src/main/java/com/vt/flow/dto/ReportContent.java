@@ -23,6 +23,9 @@ public class ReportContent {
     @Schema(description = "行为报告，文件分析时才有")
     private Object behaviour;
 
+    @Schema(description = "行为报告中的ATT&CK汇总信息")
+    private Object mitre;
+
     @Schema(description = "错误信息")
     private String error;
 }

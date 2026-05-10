@@ -26,15 +26,16 @@ public class DomainScanner implements Scanner {
     private final DomainValidator validator = DomainValidator.getInstance();
 
     @Override
+    public void valid(InputContent input) {
+        if (!validator.isValid(input.getPayload())) {
+            throw new IllegalArgumentException("Wrong domain format");
+        }
+    }
+
+    @Override
     public VtResult<? extends UploadScanResp> scan(InputContent input) {
         String payload = input.getPayload();
-        if (!validator.isValid(payload)) {
-            VtResult<? extends UploadScanResp> result = new VtResult<>();
-            result.setError("Wrong domain format");
-            return result;
-        }
-
-        return apiRemote(() -> api.scanDomain(payload));
+        return apiRemote(() -> api.scanDomain(payload), "Domain scan failed: ");
     }
 
     @Override
@@ -45,12 +46,12 @@ public class DomainScanner implements Scanner {
 
     @Override
     public VtResult<? extends UploadScanResp> reAnalyze(String target) {
-        return apiRemote(() -> api.scanDomain(target));
+        return apiRemote(() -> api.scanDomain(target), "Domain scan failed: ");
     }
 
     @Override
     public VtResult<?> getReport(String id) {
-        return apiRemote(() -> api.getDomainReport(id));
+        return apiRemote(() -> api.getDomainReport(id), "Domain report fetching failed: ");
     }
 
     @Override

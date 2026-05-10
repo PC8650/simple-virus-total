@@ -26,15 +26,16 @@ public class UrlScanner implements Scanner {
     private final UrlValidator validator = new UrlValidator();
 
     @Override
+    public void valid(InputContent input) {
+        if (!validator.isValid(input.getPayload())) {
+            throw new IllegalArgumentException("Wrong url format");
+        }
+    }
+
+    @Override
     public VtResult<? extends UploadScanResp> scan(InputContent input) {
         String payload = input.getPayload();
-        if (!validator.isValid(payload)) {
-            VtResult<? extends UploadScanResp> result = new VtResult<>();
-            result.setError("Wrong url format");
-            return result;
-        }
-
-        return apiRemote(() -> api.scanUrl(payload));
+        return apiRemote(() -> api.scanUrl(payload),  "Url scan failed: ");
     }
 
     @Override
@@ -45,12 +46,12 @@ public class UrlScanner implements Scanner {
 
     @Override
     public VtResult<? extends UploadScanResp> reAnalyze(String target) {
-        return apiRemote(() -> api.reAnalyze(target));
+        return apiRemote(() -> api.reAnalyze(target), "Url scan failed: ");
     }
 
     @Override
     public VtResult<?> getReport(String id) {
-        return apiRemote(() -> api.getUrlReport(id));
+        return apiRemote(() -> api.getUrlReport(id), "Url report fetching failed: ");
     }
 
     @Override

@@ -13,10 +13,10 @@ import java.util.concurrent.ConcurrentHashMap;
 @AllArgsConstructor
 public enum SkillEnum {
 
-    FILE("src/main/resources/skills/file_analysis_skill.md"),
-    URL("src/main/resources/skills/url_analysis_skill.md"),
-    IP("src/main/resources/skills/ip_analysis_skill.md"),
-    DOMAIN("src/main/resources/skills/domain_analysis_skill.md");
+    FILE("src/main/resources/skills/file_skill.md"),
+    URL("src/main/resources/skills/url_skill.md"),
+    IP("src/main/resources/skills/ip_skill.md"),
+    DOMAIN("src/main/resources/skills/domain_skill.md");
 
     private final static Map<SkillEnum, String> SKILL_CACHE_MAP = new ConcurrentHashMap<>(4);
 

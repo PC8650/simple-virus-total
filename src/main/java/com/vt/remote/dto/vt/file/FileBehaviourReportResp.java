@@ -279,6 +279,14 @@ public record FileBehaviourReportResp(
 
             @SerializedName("registry_keys_deleted")
             @Schema(name = "registry_keys_deleted", description = "被删除的Windows注册表键名称")
-            List<String> registryKeysDeleted
+            List<String> registryKeysDeleted,
+
+            @SerializedName("files_dropped")
+            @Schema(name = "files_dropped", description = "执行过程中释放（投放）的文件列表")
+            List<FileDropped> filesDropped,
+
+            @SerializedName("ip_traffic")
+            @Schema(name = "ip_traffic", description = "IP 网络流量记录（目标 IP、端口、传输层协议）")
+            List<IpTraffic> ipTraffic
     ){}
 }

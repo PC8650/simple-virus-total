@@ -9,12 +9,14 @@ import com.vt.remote.component.VtRemoter;
 import com.vt.remote.dto.FileUploadParse;
 import com.vt.remote.dto.VtResult;
 import com.vt.remote.dto.vt.file.FileBehaviourReportResp;
+import com.vt.remote.dto.vt.file.FileMitreResp;
 import com.vt.remote.dto.vt.file.FileReportResp;
 import com.vt.remote.dto.vt.file.FileScanResp;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Map;
 
 
 @Component
@@ -73,6 +75,26 @@ public class FileApi {
     }
 
     /**
+     * 文件活动汇总
+     * @param id <sha256>
+     * @return 文件活动汇总
+     */
+    public VtResult<?> getActiveSummary(String id) {
+        String url = ApiEnum.GET_ACTIVE_SUMMARY.getApiUrl(id);
+        return vtRemoter.get(url, new TypeToken<>() {});
+    }
+
+    /**
+     * 汇总所有沙箱的 战术/技术。沙箱-战术
+     * @param id <sha256>
+     * @return 汇总所有沙箱的 战术/技术 信息
+     */
+    public VtResult<Map<String, FileMitreResp>> getMitreTrees(String id) {
+        String url = ApiEnum.GET_MITRE_TREE.getApiUrl(id);
+        return vtRemoter.get(url, new TypeToken<VtResult<Map<String, FileMitreResp>>>() {});
+    }
+
+    /**
      * 获取url
      * @param size 文件大小
      * @return vt上传接口
@@ -104,7 +126,7 @@ public class FileApi {
      */
     private String getLargeThan32Url() {
         String url = ApiEnum.GET_UPLOAD_GT_32_URL.getApiUrl(null);
-        return vtRemoter.get(url, new TypeToken<String>() {});
+        return vtRemoter.get(url, new TypeToken<VtResult<String>>() {}).getData();
     }
 
 }

@@ -12,11 +12,14 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.http.MediaType;
 
 import com.vt.flow.utils.FlowSseUtil;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import reactor.core.publisher.Flux;
 
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
+@Tag(name = "AI 分析流", description = "驱动 VirusTotal 完整分析链路的 AI 专家接口")
 @RestController
 @RequestMapping("/vt")
 @RequiredArgsConstructor
@@ -24,10 +27,13 @@ public class AiController {
 
     private final ChatClient vtClient;
 
+    @Operation(summary = "发起流式分析任务", description = "提交文件/域名/IP/URL，并以 SSE 流的形式实时推送分析节点的详细专家报告。")
     @PostMapping(path = "/flow", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public ResponseEntity<SseEmitter> vtFlow(@ModelAttribute InputContent inputContent) {
         // 流程限制最长20分钟
         SseEmitter emitter = new SseEmitter(1200000L);
+
+        //初始化参数
         AtomicReference<String> current = new AtomicReference<>();
         Map<String, Object> chainContent = ChainKey.initVtFlowMap(emitter, inputContent, new FlowResp(), current);
 
