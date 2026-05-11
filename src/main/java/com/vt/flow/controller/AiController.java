@@ -34,6 +34,7 @@ public class AiController {
         SseEmitter emitter = new SseEmitter(1200000L);
 
         //初始化参数
+        // chainContent 会被浅拷贝再传入流程，因此String这种不可变又需要被外部感知的对象需要单独处理
         AtomicReference<String> current = new AtomicReference<>();
         Map<String, Object> chainContent = ChainKey.initVtFlowMap(emitter, inputContent, new FlowResp(), current);
 
