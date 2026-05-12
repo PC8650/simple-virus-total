@@ -11,12 +11,12 @@ spring:
   ai:
     google:
       genai:
-        api-key: 1
+        api-key: ${params.m-key}
         chat:
           options:
             temperature: 0
             top-p: 0.8
-            model: gemma-4-31b-it
+            model: ${params.model}
 
 springdoc:
   api-docs:
@@ -25,4 +25,7 @@ springdoc:
     path: /swagger-ui.html
     layout: BaseLayout
 
-api-key:
+params:
+  v-key:
+  m-key:
+  model: gemma-4-31b-it

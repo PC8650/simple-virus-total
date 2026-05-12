@@ -1,0 +1,3 @@
+cd {jdk_bin_path}
+
+./jpackage --type app-image --name SVT --input {package_target_path} --main-jar {jar_full_name} --main-class org.springframework.boot.loader.launch.JarLauncher --dest {out_put_path} --add-modules java.se --win-console --verbose
