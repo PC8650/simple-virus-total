@@ -16,7 +16,10 @@ spring:
           options:
             temperature: 0
             top-p: 0.8
-            model: ${params.model}
+            model: ${params.model:gemma-4-31b-it}
+
+server:
+  port: ${params.port:8080}
 
 springdoc:
   api-docs:
@@ -25,7 +28,4 @@ springdoc:
     path: /swagger-ui.html
     layout: BaseLayout
 
-params:
-  v-key:
-  m-key:
-  model: gemma-4-31b-it
+vt-key: ${params.v-key}

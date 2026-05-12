@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class HttpConfig {
 
-    @Value("${params.v-key:}")
+    @Value("${vt-key:}")
     private String apiKey;
 
     @Bean
