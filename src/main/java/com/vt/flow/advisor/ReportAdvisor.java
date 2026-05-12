@@ -27,11 +27,11 @@ public class ReportAdvisor implements StreamAdvisor {
 
     public VtResult<?> getBehaviourReport(Scanner scanner, String reportId, ChatClientRequest chatClientRequest) {
         FlowSseUtil.sendNotMainText(chatClientRequest, getName(), "开始轮询沙箱行为分析状态... ID: " + reportId);
-        return PollUtil.poll(600000L, 15000L,
+        return PollUtil.poll(600000L, 30000L,
                 () -> {
                     VtResult<?> behaviourReport = scanner.getBehaviourReport(reportId);
                     String process = behaviourReport.getMeta().getOrDefault(metaKey, "[]").toString();
-                    FlowSseUtil.sendNotMainText(chatClientRequest, getName(), "轮询沙箱行为分析状态 (15s 间隔, 上限10m)... PROCESS: " + process);
+                    FlowSseUtil.sendNotMainText(chatClientRequest, getName(), "轮询沙箱行为分析状态 (30s 间隔, 上限10m)... PROCESS: " + process);
                     return behaviourReport;
                 },
                 (r) -> !r.getMeta().containsKey(metaKey)
