@@ -20,7 +20,7 @@ public class CacheManager {
 
     private static final String CACHE_NAME = "flow_scan";
 
-    private static final Duration EXPIRE = Duration.ofMinutes(20);
+    private static final Duration EXPIRE = Duration.ofMinutes(30);
 
     static {
         MANAGER = new CaffeineCacheManager();

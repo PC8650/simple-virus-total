@@ -1,5 +1,6 @@
 package com.vt.flow.utils;
 
+import com.vt.exception.WrapperException;
 import com.vt.flow.advisor.constant.ChainKey;
 import com.vt.flow.vo.FlowResp;
 import lombok.extern.slf4j.Slf4j;
@@ -60,7 +61,8 @@ public class FlowSseUtil {
             addConsumer.accept(flowResp, attributes);
             emitter.send(flowResp);
         } catch (Exception e) {
-            log.error("Emitter Exception", e);
+            log.error("Emitter exception", e);
+            throw new WrapperException("Emitter exception", e);
         }
     }
 }

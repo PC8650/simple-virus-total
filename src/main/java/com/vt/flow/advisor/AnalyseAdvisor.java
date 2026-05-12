@@ -20,10 +20,6 @@ import org.springframework.ai.chat.client.advisor.api.StreamAdvisorChain;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneId;
-
 /**
  * 分析顾问，通过扫描响应的分析id，轮询分析状态直到超时或完成
  */
@@ -51,7 +47,7 @@ public class AnalyseAdvisor implements StreamAdvisor {
         analyse(scanner, analyseId, chatClientRequest);
 
         //分析完成，为缓存设置报告id
-        cache.setReportId(scanner.getReportId(chatClientRequest));
+        cache.setReportId(cache.getKey());
         cacheManager.put(cache);
     }
 
