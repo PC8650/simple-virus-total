@@ -70,7 +70,7 @@ simple-virus-total
 
 ## 5. 打包说明与外部参数配置
 
-本项目推荐使用 `jpackage` 打包为跨平台的“绿色版”应用程序映像 (app-image)。详细的打包参数与不同系统（Windows/macOS/Linux）的具体打包指引，请参阅项目根目录下的 [package_command.md](src/main/resources/package_command.md)。
+本项目推荐使用 `jpackage` 打包为跨平台的“绿色版”应用程序映像 (app-image)。详细的打包参数与不同系统（Windows/macOS/Linux）的具体打包指引，请参阅项目根目录下的 **package_command.md**
 
 **外部配置指引**：
 在软件打包分发后，为避免将 API Key 泄露或硬编码在程序内部，建议使用 Spring 的外部配置覆盖能力：
