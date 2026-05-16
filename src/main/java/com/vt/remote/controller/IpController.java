@@ -31,5 +31,3 @@ public class IpController {
     }
 
 }
-
-//103.235.46.115

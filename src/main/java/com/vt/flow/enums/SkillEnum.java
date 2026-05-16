@@ -4,19 +4,21 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
 
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.util.StreamUtils;
+import java.nio.charset.StandardCharsets;
+import java.io.InputStream;
 
 @Slf4j
 @AllArgsConstructor
 public enum SkillEnum {
 
-    FILE("src/main/resources/skills/file_skill.md"),
-    URL("src/main/resources/skills/url_skill.md"),
-    IP("src/main/resources/skills/ip_skill.md"),
-    DOMAIN("src/main/resources/skills/domain_skill.md");
+    FILE("skills/file_skill.md"),
+    URL("skills/url_skill.md"),
+    IP("skills/ip_skill.md"),
+    DOMAIN("skills/domain_skill.md");
 
     private final static Map<SkillEnum, String> SKILL_CACHE_MAP = new ConcurrentHashMap<>(4);
 
@@ -24,9 +26,12 @@ public enum SkillEnum {
 
     private String loadSkillContent() {
         try {
-            return Files.readString(Paths.get(skillPath));
+            ClassPathResource resource = new ClassPathResource(this.skillPath);
+            try (InputStream inputStream = resource.getInputStream()) {
+                return StreamUtils.copyToString(inputStream, StandardCharsets.UTF_8);
+            }
         } catch (Exception e) {
-            log.error("Failed to load skill content from path: " + skillPath, e);
+            log.error("Failed to load skill content from classpath: " + skillPath, e);
             return "";
         }
     }

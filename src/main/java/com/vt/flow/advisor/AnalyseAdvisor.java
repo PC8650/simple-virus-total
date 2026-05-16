@@ -19,6 +19,8 @@ import org.springframework.ai.chat.client.advisor.api.StreamAdvisor;
 import org.springframework.ai.chat.client.advisor.api.StreamAdvisorChain;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
+import com.vt.enums.MsgEnum;
+import com.vt.utils.MessageUtils;
 
 /**
  * 分析顾问，通过扫描响应的分析id，轮询分析状态直到超时或完成
@@ -31,12 +33,18 @@ public class AnalyseAdvisor implements StreamAdvisor {
     private final CacheManager cacheManager;
 
     private VtResult<AnalyseResp> analyse(Scanner scanner, String analyseId, ChatClientRequest chatClientRequest) {
-        FlowSseUtil.sendNotMainText(chatClientRequest, getName(), "开始轮询分析状态... ID: " + analyseId);
+        com.vt.flow.dto.InputContent inputContent = ChainKey.INPUT.get(chatClientRequest);
+        String lang = inputContent.getLanguage();
+
+        FlowSseUtil.sendNotMainText(chatClientRequest, getName(),
+                MessageUtils.getMessage(lang, MsgEnum.SSE_ANALYSE_START, analyseId));
         return PollUtil.poll(300000L, 15000L,
                 () -> {
-                    VtResult<AnalyseResp> analyseResp = scanner.apiRemote(() -> api.analyse(analyseId), "Analyse status fetch failed: ");
+                    VtResult<AnalyseResp> analyseResp = scanner.apiRemote(() -> api.analyse(analyseId),
+                            "Analyse status fetch failed: ");
                     String status = analyseResp.getData().attributes().status();
-                    FlowSseUtil.sendNotMainText(chatClientRequest, getName(), "轮询分析状态 (15s 间隔, 上限5m)... STATUS: " + status);
+                    FlowSseUtil.sendNotMainText(chatClientRequest, getName(),
+                            MessageUtils.getMessage(lang, MsgEnum.SSE_ANALYSE_POLLING, status));
                     return analyseResp;
                 },
                 (r) -> "completed".equals(r.getData().attributes().status()));
@@ -46,7 +54,7 @@ public class AnalyseAdvisor implements StreamAdvisor {
         Scanner scanner = ChainKey.SCANNER.get(chatClientRequest);
         analyse(scanner, analyseId, chatClientRequest);
 
-        //分析完成，为缓存设置报告id
+        // 分析完成，为缓存设置报告id
         cache.setReportId(cache.getKey());
         cacheManager.put(cache);
     }
@@ -67,13 +75,15 @@ public class AnalyseAdvisor implements StreamAdvisor {
             cache.setAnalyseId(analyseId);
             cacheManager.put(cache);
             analyseStatusFetch(analyseId, cache, chatClientRequest);
-        }else if (cache.hasReportId()) {
+        } else if (cache.hasReportId()) {
             // 已有缓存的报告id
-            FlowSseUtil.sendNotMainText(chatClientRequest, getName(), "目标载荷已在近期完成分析，将直接获取报告");
-        }else if (cache.hasAnalyseId()){
+            String lang = ChainKey.INPUT.get(chatClientRequest).getLanguage();
+            FlowSseUtil.sendNotMainText(chatClientRequest, getName(),
+                    MessageUtils.getMessage(lang, MsgEnum.SSE_ANALYSE_CACHED));
+        } else if (cache.hasAnalyseId()) {
             // 只有分析id
             analyseStatusFetch(cache.getAnalyseId(), cache, chatClientRequest);
-        }else {
+        } else {
             throw new WrapperException("The analysis id cannot be obtained");
         }
 

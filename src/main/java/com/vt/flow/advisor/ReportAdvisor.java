@@ -15,6 +15,8 @@ import org.springframework.ai.chat.client.advisor.api.StreamAdvisor;
 import org.springframework.ai.chat.client.advisor.api.StreamAdvisorChain;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
+import com.vt.enums.MsgEnum;
+import com.vt.utils.MessageUtils;
 
 /**
  * 报告顾问。获取报告
@@ -26,16 +28,20 @@ public class ReportAdvisor implements StreamAdvisor {
     private final String metaKey = "sandboxes_in_progress";
 
     public VtResult<?> getBehaviourReport(Scanner scanner, String reportId, ChatClientRequest chatClientRequest) {
-        FlowSseUtil.sendNotMainText(chatClientRequest, getName(), "开始轮询沙箱行为分析状态... ID: " + reportId);
+        com.vt.flow.dto.InputContent inputContent = ChainKey.INPUT.get(chatClientRequest);
+        String lang = inputContent.getLanguage();
+
+        FlowSseUtil.sendNotMainText(chatClientRequest, getName(),
+                MessageUtils.getMessage(lang, MsgEnum.SSE_REPORT_SANDBOX_START, reportId));
         return PollUtil.poll(600000L, 30000L,
                 () -> {
                     VtResult<?> behaviourReport = scanner.getBehaviourReport(reportId);
                     String process = behaviourReport.getMeta().getOrDefault(metaKey, "[]").toString();
-                    FlowSseUtil.sendNotMainText(chatClientRequest, getName(), "轮询沙箱行为分析状态 (30s 间隔, 上限10m)... PROCESS: " + process);
+                    FlowSseUtil.sendNotMainText(chatClientRequest, getName(),
+                            MessageUtils.getMessage(lang, MsgEnum.SSE_REPORT_SANDBOX_POLLING, process));
                     return behaviourReport;
                 },
-                (r) -> !r.getMeta().containsKey(metaKey)
-        );
+                (r) -> !r.getMeta().containsKey(metaKey));
     }
 
     @NotNull
@@ -47,7 +53,9 @@ public class ReportAdvisor implements StreamAdvisor {
         String reportId = ChainKey.CACHE.get(chatClientRequest).getReportId();
 
         // 获取报告
-        FlowSseUtil.sendNotMainText(chatClientRequest, getName(), "拉取分析报告... ID: " + reportId);
+        String lang = ChainKey.INPUT.get(chatClientRequest).getLanguage();
+        FlowSseUtil.sendNotMainText(chatClientRequest, getName(),
+                MessageUtils.getMessage(lang, MsgEnum.SSE_REPORT_FETCH, reportId));
         VtResult<?> report = scanner.getReport(reportId);
 
         // 获取行为报告
@@ -57,13 +65,15 @@ public class ReportAdvisor implements StreamAdvisor {
         if (TypeEnum.FILE.equals(type)) {
             VtResult<?> behaviourReport = getBehaviourReport(scanner, reportId, chatClientRequest);
             behaviourReportData = behaviourReport.getData();
-            //获取 战术/技术 汇总
-            FlowSseUtil.sendNotMainText(chatClientRequest, getName(), "开始获取  ATT&CK 汇总信息... ID: " + reportId);
+            // 获取 战术/技术 汇总
+            FlowSseUtil.sendNotMainText(chatClientRequest, getName(),
+                    MessageUtils.getMessage(lang, MsgEnum.SSE_REPORT_MITRE_START, reportId));
             VtResult<?> behaviourMitre = scanner.getBehaviourMitre(reportId);
-            behaviourMitreData =  behaviourMitre.getData();
+            behaviourMitreData = behaviourMitre.getData();
         }
 
-        FlowSseUtil.sendNotMainText(chatClientRequest, getName(), "汇总报告数据 " + reportId);
+        FlowSseUtil.sendNotMainText(chatClientRequest, getName(),
+                MessageUtils.getMessage(lang, MsgEnum.SSE_REPORT_SUMMARY, reportId));
 
         ReportContent reportContent = new ReportContent()
                 .setType(type)

@@ -21,7 +21,11 @@ public class InputContent {
     @Schema(description = "压缩文件密码")
     private String pwd;
 
+    @Schema(description = "补充说明")
+    private String description;
+
     @Schema(description = "结果语言")
     private String language;
+
 
 }

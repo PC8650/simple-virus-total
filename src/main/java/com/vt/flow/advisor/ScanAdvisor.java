@@ -17,6 +17,8 @@ import org.springframework.ai.chat.client.advisor.api.StreamAdvisorChain;
 import org.springframework.stereotype.Component;
 import com.vt.flow.utils.FlowSseUtil;
 import reactor.core.publisher.Flux;
+import com.vt.enums.MsgEnum;
+import com.vt.utils.MessageUtils;
 
 @Component
 @RequiredArgsConstructor
@@ -30,7 +32,8 @@ public class ScanAdvisor implements StreamAdvisor {
         CacheDto cache = cacheManager.get(cacheKey);
 
         boolean cached = cache != null;
-        if (!cached) cache = CacheDto.init(cacheKey);
+        if (!cached)
+            cache = CacheDto.init(cacheKey);
         ChainKey.CACHE.put(chatClientRequest, cache);
 
         return cached;
@@ -43,7 +46,9 @@ public class ScanAdvisor implements StreamAdvisor {
         ChainKey.CURRENT.get(chatClientRequest).set(getName());
         InputContent inputContent = ChainKey.INPUT.get(chatClientRequest);
 
-        FlowSseUtil.sendNotMainText(chatClientRequest, getName(), "正在提交扫描任务... 类型：" + inputContent.getType());
+        String lang = inputContent.getLanguage();
+        FlowSseUtil.sendNotMainText(chatClientRequest, getName(),
+                MessageUtils.getMessage(lang, MsgEnum.SSE_SCAN_SUBMIT, inputContent.getType()));
 
         Scanner scanner = scannerFactory.get(inputContent.getType());
         scanner.valid(inputContent);

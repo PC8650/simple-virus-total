@@ -5,6 +5,8 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.vt.remote.dto.VtResult;
 import com.vt.exception.WrapperException;
+import com.vt.enums.MsgEnum;
+import com.vt.utils.MessageUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -37,7 +39,8 @@ public class VtRemoter {
      * post 并只返回响应包装的data
      */
     public <T> T postResultData(String url, HttpContent content, Class<T> clazz) {
-        VtResult<T> vtResult = post(url, content, new  TypeToken<VtResult<T>>() {});
+        VtResult<T> vtResult = post(url, content, new TypeToken<VtResult<T>>() {
+        });
         return vtResult.getData();
     }
 
@@ -45,26 +48,30 @@ public class VtRemoter {
      * get 并只返回响应包装的data
      */
     public <T> T getResultData(String url, Class<T> clazz) {
-        VtResult<T> vtResult = get(url, new TypeToken<VtResult<T>>() {});
+        VtResult<T> vtResult = get(url, new TypeToken<VtResult<T>>() {
+        });
         return vtResult.getData();
     }
 
     /**
      * 构建请求
-     * @param post 是否post调用，vt接口只有post和get
-     * @param url url
+     * 
+     * @param post    是否post调用，vt接口只有post和get
+     * @param url     url
      * @param content {@link HttpContent 请求体/表单 数据}
      * @return HttpRequest
      */
     private HttpRequest requestConstruct(boolean post, String url, HttpContent content) {
         try {
             HttpRequest request;
-            if (post) request = requestFactory.buildPostRequest(new GenericUrl(url), content);
-            else request = requestFactory.buildGetRequest(new GenericUrl(url));
+            if (post)
+                request = requestFactory.buildPostRequest(new GenericUrl(url), content);
+            else
+                request = requestFactory.buildGetRequest(new GenericUrl(url));
             request.setHeaders(headers);
             return request;
-        }catch (Exception e){
-            throw new WrapperException("virus total 请求参数构建异常", e);
+        } catch (Exception e) {
+            throw new WrapperException(MessageUtils.getMessage(MsgEnum.VT_ERROR_BUILD), e);
         }
     }
 
@@ -72,17 +79,17 @@ public class VtRemoter {
         HttpResponse response;
         try {
             response = request.execute();
-        }catch (Exception e){
-            throw new WrapperException("virus total 调用失败: " + e.getMessage(), e);
+        } catch (Exception e) {
+            throw new WrapperException(MessageUtils.getMessage(MsgEnum.VT_ERROR_CALL, e.getMessage()), e);
         }
 
         String body = "";
         try {
             body = response.parseAsString();
             return gson.fromJson(body, typeToken.getType());
-        }catch (Exception e){
+        } catch (Exception e) {
             log.info("virus total response: {}", body);
-            throw new WrapperException("virus total 响应解析异常", e);
+            throw new WrapperException(MessageUtils.getMessage(MsgEnum.VT_ERROR_PARSE), e);
         }
     }
 

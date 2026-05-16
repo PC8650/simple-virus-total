@@ -5,18 +5,22 @@ spring:
     multipart:
       max-file-size: 650MB
       max-request-size: 651MB
+  messages:
+    basename: i18n/messages
   threads:
     virtual:
       enabled: true
   ai:
     google:
       genai:
-        api-key: ${params.m-key}
+        api-key: ${params.google.key}
         chat:
           options:
             temperature: 0
             top-p: 0.8
-            model: ${params.model:gemma-4-31b-it}
+            model: ${params.google.model:gemma-4-31b-it}
+            google-search-retrieval: ${params.google.search:false}
+            thinking-level: ${params.google.thinking-level:high}
 
 server:
   port: ${params.port:8080}

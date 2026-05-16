@@ -7,8 +7,104 @@ const logContainer = document.getElementById('logContainer');
 const submitBtn = document.getElementById('submitBtn');
 const btnText = document.getElementById('btnText');
 const loader = document.getElementById('loader');
+const langSelect = document.getElementById('language');
+
+// --- i18n logic ---
+const i18n = {
+    'zh-CN': {
+        typeLabel: '分析类型',
+        typeFile: '文件分析 (FILE)',
+        typeUrl: '网址分析 (URL)',
+        typeIp: 'IP 地址分析 (IP)',
+        typeDomain: '域名分析 (DOMAIN)',
+        payloadLabel: '载荷 (URL/IP/Domain)',
+        payloadPlaceholder: '请输入分析目标...',
+        fileLabel: '目标文件',
+        pwdLabel: '压缩包密码 (可选)',
+        pwdPlaceholder: '若为加密压缩包请填写...',
+        descLabel: '补充说明',
+        descPlaceholder: '例如：该文件来自可疑邮件，重点关注内嵌宏...',
+        langLabel: '报告语言',
+        btnStart: '立即启动分析',
+        btnRunning: '分析引擎运行中...',
+        selectFileBtn: '选择文件',
+        noFileChosen: '未选择任何文件',
+        sysReady: '系统准备就绪',
+        sysWait: '等待输入指令以启动 AI 威胁分析流...',
+        sysInit: '正在初始化分析流，建立 SSE 连接...'
+    },
+    'en-US': {
+        typeLabel: 'Analysis Type',
+        typeFile: 'File Analysis (FILE)',
+        typeUrl: 'URL Analysis (URL)',
+        typeIp: 'IP Analysis (IP)',
+        typeDomain: 'Domain Analysis (DOMAIN)',
+        payloadLabel: 'Payload (URL/IP/Domain)',
+        payloadPlaceholder: 'Enter analysis target...',
+        fileLabel: 'Target File',
+        pwdLabel: 'Archive Password (Optional)',
+        pwdPlaceholder: 'Fill if archive is encrypted...',
+        descLabel: 'Additional Context',
+        descPlaceholder: 'e.g., File is from a suspicious email, focus on embedded macros...',
+        langLabel: 'Report Language',
+        btnStart: 'Start Analysis',
+        btnRunning: 'Engine Running...',
+        selectFileBtn: 'Select File',
+        noFileChosen: 'No file chosen',
+        sysReady: 'System Ready',
+        sysWait: 'Waiting for instructions to start AI threat analysis flow...',
+        sysInit: 'Initializing analysis flow, establishing SSE connection...'
+    }
+};
+
+function getCurrentDict() {
+    return i18n[langSelect.value] || i18n['en-US'];
+}
+
+function updateI18n() {
+    const dict = getCurrentDict();
+
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (dict[key]) {
+            el.textContent = dict[key];
+        }
+    });
+
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        if (dict[key]) {
+            el.placeholder = dict[key];
+        }
+    });
+}
+
+langSelect.addEventListener('change', updateI18n);
+
+document.addEventListener('DOMContentLoaded', () => {
+    const browserLang = navigator.language || navigator.userLanguage;
+    if (browserLang.startsWith('zh')) {
+        langSelect.value = 'zh-CN';
+    } else {
+        langSelect.value = 'en-US';
+    }
+    updateI18n();
+});
 
 // 1. 类型联动
+const fileInput = document.getElementById('file');
+const fileNameDisplay = document.getElementById('fileName');
+
+fileInput.addEventListener('change', () => {
+    if (fileInput.files.length > 0) {
+        fileNameDisplay.textContent = fileInput.files[0].name;
+        fileNameDisplay.removeAttribute('data-i18n'); // 选中文件后停止 i18n 覆盖
+    } else {
+        fileNameDisplay.setAttribute('data-i18n', 'noFileChosen');
+        updateI18n();
+    }
+});
+
 typeSelect.addEventListener('change', () => {
     const type = typeSelect.value;
     if (type === 'FILE') {
@@ -79,9 +175,10 @@ scanForm.addEventListener('submit', async (e) => {
     
     // UI 状态
     submitBtn.disabled = true;
-    btnText.textContent = '分析引擎运行中...';
+    const dict = getCurrentDict();
+    btnText.textContent = dict.btnRunning;
     loader.classList.remove('hidden');
-    logContainer.innerHTML = '<div class="node-section"><div class="node-header">SYSTEM</div><div class="log-entry non-main">正在初始化分析流，建立 SSE 连接...</div></div>';
+    logContainer.innerHTML = `<div class="node-section"><div class="node-header">SYSTEM</div><div class="log-entry non-main">${dict.sysInit}</div></div>`;
 
     const formData = new FormData(scanForm);
     
@@ -139,6 +236,6 @@ scanForm.addEventListener('submit', async (e) => {
 
 function finalizeUI() {
     submitBtn.disabled = false;
-    btnText.textContent = '立即启动分析';
+    btnText.textContent = getCurrentDict().btnStart;
     loader.classList.add('hidden');
 }

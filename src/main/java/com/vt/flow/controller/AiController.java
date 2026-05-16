@@ -18,6 +18,8 @@ import reactor.core.publisher.Flux;
 
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
+import com.vt.enums.MsgEnum;
+import com.vt.utils.MessageUtils;
 
 @Tag(name = "AI 分析流", description = "驱动 VirusTotal 完整分析链路的 AI 专家接口")
 @RestController
@@ -33,16 +35,25 @@ public class AiController {
         // 流程限制最长20分钟
         SseEmitter emitter = new SseEmitter(1200000L);
 
-        //初始化参数
+        // 初始化参数
         // chainContent 会被浅拷贝再传入流程，因此String这种不可变又需要被外部感知的对象需要单独处理
         AtomicReference<String> current = new AtomicReference<>();
         Map<String, Object> chainContent = ChainKey.initVtFlowMap(emitter, inputContent, new FlowResp(), current);
 
         // 使用虚拟线程执行后续所有的分析流程，释放 Tomcat 的主请求线程
         Thread.startVirtualThread(() -> {
+            String lang = inputContent.getLanguage();
             try {
                 // 1. 发起流式分析请求（添加占位符 User 消息，防止 Google API 校验失败）
-                Flux<String> flux = vtClient.prompt("Initial analysis request")
+                String userPrompt;
+                if (inputContent.getDescription() != null && !inputContent.getDescription().isBlank()) {
+                    userPrompt = MessageUtils.getMessage(lang, MsgEnum.PROMPT_INITIAL,
+                            inputContent.getDescription());
+                } else {
+                    userPrompt = MessageUtils.getMessage(lang, MsgEnum.PROMPT_INITIAL_EMPTY);
+                }
+
+                Flux<String> flux = vtClient.prompt(userPrompt)
                         .advisors((a) -> a.params(chainContent))
                         .stream()
                         .content();
@@ -52,15 +63,17 @@ public class AiController {
                         chunk -> FlowSseUtil.send(chainContent, current.get(), chunk),
                         error -> {
                             FlowSseUtil.sendFinish(chainContent, current.get(),
-                                    "任务执行异常: " + error.getMessage());
+                                    MessageUtils.getMessage(lang, MsgEnum.SSE_TASK_ERROR, error.getMessage()));
                             emitter.completeWithError(error);
                         },
                         () -> {
-                            FlowSseUtil.sendFinishNotMainText(chainContent, current.get(), "任务执行完毕");
+                            FlowSseUtil.sendFinishNotMainText(chainContent, current.get(),
+                                    MessageUtils.getMessage(lang, MsgEnum.SSE_TASK_FINISH));
                             emitter.complete();
                         });
             } catch (Exception e) {
-                FlowSseUtil.sendFinish(chainContent, current.get(), "服务内部异常: " + e.getMessage());
+                FlowSseUtil.sendFinish(chainContent, current.get(),
+                        MessageUtils.getMessage(lang, MsgEnum.SSE_TASK_INTERNAL_ERROR, e.getMessage()));
                 emitter.completeWithError(e);
             }
         });

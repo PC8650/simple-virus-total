@@ -19,6 +19,8 @@ import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
+import com.vt.enums.MsgEnum;
+import com.vt.utils.MessageUtils;
 
 import java.util.List;
 
@@ -31,6 +33,28 @@ public class SummaryAdvisor implements StreamAdvisor {
 
     private final Gson gson;
 
+    private String usrPrompt(InputContent inputContent, ReportContent reportContent) {
+        StringBuilder builder = new StringBuilder();
+        String lang = inputContent.getLanguage();
+
+        // 1. 核心任务指令
+        builder.append(MessageUtils.getMessage(lang, MsgEnum.PROMPT_SUMMARY_TASK, inputContent.getLanguage()))
+                .append("\n");
+
+        // 2. 补充背景上下文
+        if (StringUtils.hasText(inputContent.getDescription())) {
+            builder.append(MessageUtils.getMessage(lang, MsgEnum.PROMPT_SUMMARY_BG_TITLE))
+                    .append(inputContent.getDescription())
+                    .append("\n\n");
+        }
+
+        // 3. 数据载荷
+        builder.append(MessageUtils.getMessage(lang, MsgEnum.PROMPT_SUMMARY_DATA_TITLE))
+                .append(gson.toJson(reportContent));
+
+        return builder.toString();
+    }
+
     @NotNull
     @Override
     @SuppressWarnings("unchecked")
@@ -39,17 +63,17 @@ public class SummaryAdvisor implements StreamAdvisor {
         ReportContent reportContent = ChainKey.REPORT_SUMMARY.get(chatClientRequest);
 
         // 使用工具类推送实况
-        FlowSseUtil.sendNotMainText(chatClientRequest, getName(), "数据采集完成，启动深度分析...");
+        InputContent inputContent = ChainKey.INPUT.get(chatClientRequest);
+        String lang = inputContent.getLanguage();
+        FlowSseUtil.sendNotMainText(chatClientRequest, getName(),
+                MessageUtils.getMessage(lang, MsgEnum.SSE_SUMMARY_START));
 
         String sysPrompt = reportContent.getType().getSkill().getSkillContent();
-        if (!StringUtils.hasText(sysPrompt)) throw new WrapperException("Failed to load skill content");
+        if (!StringUtils.hasText(sysPrompt))
+            throw new WrapperException("Failed to load skill content");
 
         // 将 JSON 数据作为用户提示词，并加上明确的分析引导语
-        InputContent inputContent = ChainKey.INPUT.get(chatClientRequest);
-        String usrPrompt =
-                String.format(
-                        "请根据以下提供的原始 JSON 数据，严格执行你系统提示词中的专家分析流程，并使用使用语言[%s]输出结果：\n", inputContent.getLanguage()
-                ) + gson.toJson(reportContent);
+        String usrPrompt = usrPrompt(inputContent, reportContent);
 
         Message systemMessage = new SystemMessage(sysPrompt);
         Message userMessage = new UserMessage(usrPrompt);
