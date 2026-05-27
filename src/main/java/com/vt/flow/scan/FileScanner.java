@@ -1,5 +1,6 @@
 package com.vt.flow.scan;
 
+import com.vt.enums.MsgEnum;
 import com.vt.flow.advisor.constant.ChainKey;
 import com.vt.flow.dto.InputContent;
 import com.vt.flow.enums.TypeEnum;
@@ -9,6 +10,7 @@ import com.vt.remote.dto.FileUpload;
 import com.vt.remote.dto.VtResult;
 import com.vt.remote.dto.vt.abs.UploadScanResp;
 import com.vt.remote.dto.vt.file.FileBehaviourReportResp;
+import com.vt.utils.MessageUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.client.ChatClientRequest;
 import org.springframework.stereotype.Component;
@@ -29,7 +31,7 @@ public class FileScanner implements Scanner {
     @Override
     public void valid(InputContent input) {
         if (input.getFile() == null) {
-            throw new IllegalArgumentException("Must choose a file");
+            throw new IllegalArgumentException(MessageUtils.getMessage(MsgEnum.SCAN_ERR_FILE_EMPTY));
         }
     }
 

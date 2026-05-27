@@ -1,6 +1,8 @@
 package com.vt.flow.utils;
 
+import com.vt.enums.MsgEnum;
 import com.vt.exception.WrapperException;
+import com.vt.utils.MessageUtils;
 
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -29,7 +31,7 @@ public class PollUtil {
             }
         }
 
-        throw new WrapperException("Timeout while waiting for result");
+        throw new WrapperException(MessageUtils.getMessage(MsgEnum.SYS_TIMEOUT_RESULT));
     }
 
 }

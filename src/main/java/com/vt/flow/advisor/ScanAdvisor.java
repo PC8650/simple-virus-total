@@ -20,6 +20,8 @@ import reactor.core.publisher.Flux;
 import com.vt.enums.MsgEnum;
 import com.vt.utils.MessageUtils;
 
+import java.util.Objects;
+
 @Component
 @RequiredArgsConstructor
 public class ScanAdvisor implements StreamAdvisor {
@@ -31,9 +33,8 @@ public class ScanAdvisor implements StreamAdvisor {
         String cacheKey = inputContent.getType().getCacheKey(inputContent);
         CacheDto cache = cacheManager.get(cacheKey);
 
-        boolean cached = cache != null;
-        if (!cached)
-            cache = CacheDto.init(cacheKey);
+        boolean cached = Objects.nonNull(cache);
+        if (!cached) cache = CacheDto.init(cacheKey);
         ChainKey.CACHE.put(chatClientRequest, cache);
 
         return cached;

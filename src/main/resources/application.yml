@@ -13,7 +13,7 @@ spring:
   ai:
     google:
       genai:
-        api-key: ${params.google.key}
+        api-key: ${params.google.key:-}
         chat:
           options:
             temperature: 0
@@ -33,3 +33,15 @@ springdoc:
     layout: BaseLayout
 
 vt-key: ${params.v-key}
+
+external-skill:
+  enable: ${params.external.enable:false}
+  dir: ${params.external.dir:}
+  top-limit: ${params.external.top-limit:3}
+
+ai-provider:
+  customer: ${params.customer.ai:false}
+  base-url: ${params.customer.base-url:}
+  api-key: ${params.customer.api-key:}
+  model: ${params.customer.model:}
+  temperature: ${params.customer.temperature:0}

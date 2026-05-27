@@ -3,6 +3,7 @@ package com.vt.remote.api;
 import com.google.api.client.http.EmptyContent;
 import com.google.api.client.http.MultipartContent;
 import com.google.gson.reflect.TypeToken;
+import com.vt.enums.MsgEnum;
 import com.vt.remote.api.constant.SizeConstant;
 import com.vt.remote.api.enums.ApiEnum;
 import com.vt.remote.component.VtRemoter;
@@ -12,6 +13,7 @@ import com.vt.remote.dto.vt.file.FileBehaviourReportResp;
 import com.vt.remote.dto.vt.file.FileMitreResp;
 import com.vt.remote.dto.vt.file.FileReportResp;
 import com.vt.remote.dto.vt.file.FileScanResp;
+import com.vt.utils.MessageUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -32,7 +34,7 @@ public class FileApi {
      */
     public VtResult<FileScanResp> uploadFile(FileUploadParse uploadParse) {
         if (SizeConstant.SIZE_LIMIT < uploadParse.size()) {
-            throw new IllegalArgumentException(String.format("file size large than %sM", SizeConstant.SIZE_LIMIT));
+            throw new IllegalArgumentException(MessageUtils.getMessage(MsgEnum.SCAN_ERR_FILE_SIZE, SizeConstant.SIZE_LIMIT));
         }
 
         String url = chooseUrl(uploadParse.size());

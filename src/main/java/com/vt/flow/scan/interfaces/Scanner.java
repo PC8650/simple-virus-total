@@ -1,9 +1,11 @@
 package com.vt.flow.scan.interfaces;
 
+import com.vt.enums.MsgEnum;
 import com.vt.flow.dto.InputContent;
 import com.vt.flow.enums.TypeEnum;
 import com.vt.remote.dto.VtResult;
 import com.vt.remote.dto.vt.abs.UploadScanResp;
+import com.vt.utils.MessageUtils;
 import org.springframework.ai.chat.client.ChatClientRequest;
 
 import java.util.function.Supplier;
@@ -56,7 +58,9 @@ public interface Scanner {
         VtResult<T> result;
         result =  remote.get();
         //不成功就抛出异常，终止流程
-        if (!result.isSuccess()) throw new RuntimeException(remark + result.getError());
+        if (!result.isSuccess()) {
+            throw new RuntimeException(MessageUtils.getMessage(MsgEnum.SCAN_ERR_API_FAILED, remark, result.getError()));
+        }
         return result;
     }
 

@@ -1,8 +1,10 @@
 package com.vt.flow.utils;
 
+import com.vt.enums.MsgEnum;
 import com.vt.exception.WrapperException;
 import com.vt.flow.advisor.constant.ChainKey;
 import com.vt.flow.vo.FlowResp;
+import com.vt.utils.MessageUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClientRequest;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -16,8 +18,7 @@ import java.util.function.BiConsumer;
 @Slf4j
 public class FlowSseUtil {
 
-    private FlowSseUtil() {
-    }
+    private FlowSseUtil() {}
 
     /**
      * 推送过程节点信息
@@ -62,7 +63,7 @@ public class FlowSseUtil {
             emitter.send(flowResp);
         } catch (Exception e) {
             log.error("Emitter exception", e);
-            throw new WrapperException("Emitter exception", e);
+            throw new WrapperException(MessageUtils.getMessage(MsgEnum.SSE_EMITTER_ERROR), e);
         }
     }
 }

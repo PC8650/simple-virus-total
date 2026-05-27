@@ -84,7 +84,7 @@ public class AnalyseAdvisor implements StreamAdvisor {
             // 只有分析id
             analyseStatusFetch(cache.getAnalyseId(), cache, chatClientRequest);
         } else {
-            throw new WrapperException("The analysis id cannot be obtained");
+            throw new WrapperException(MessageUtils.getMessage(MsgEnum.SYS_ANALYSE_ID_ERROR));
         }
 
         return streamAdvisorChain.nextStream(chatClientRequest);

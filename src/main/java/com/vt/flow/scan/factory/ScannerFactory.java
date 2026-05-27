@@ -1,11 +1,13 @@
 package com.vt.flow.scan.factory;
 
+import com.vt.enums.MsgEnum;
 import com.vt.exception.WrapperException;
 import com.vt.flow.dto.InputContent;
 import com.vt.flow.enums.TypeEnum;
 import com.vt.flow.scan.interfaces.Scanner;
 import com.vt.remote.dto.VtResult;
 import com.vt.remote.dto.vt.abs.UploadScanResp;
+import com.vt.utils.MessageUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -28,7 +30,9 @@ public class ScannerFactory {
 
     public Scanner get(TypeEnum type) {
         Scanner scanner = scannerMap.get(type);
-        if (scanner == null) throw new WrapperException("no scanner of this type exists");
+        if (scanner == null) {
+            throw new WrapperException(MessageUtils.getMessage(MsgEnum.SYS_NO_SCANNER));
+        }
         return scanner;
     }
 

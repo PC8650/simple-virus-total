@@ -71,13 +71,13 @@
 
 ### 外部配置与参数说明 (重要)
 
-打包完成后，为了方便用户配置 API Key 或修改端口，而无需重新打包，建议利用 Spring Boot 的外部配置加载机制。
+打包完成后，为了方便用户配置 API Key、切换 AI 模型或挂载外部知识库，而无需重新打包，建议利用 Spring Boot 的外部配置加载机制。
 
 #### 1. 创建配置文件
 在生成的可执行文件（如 `simple-virus-total.exe`）同级目录下，手动创建 `config` 文件夹，并在其中创建 `application.yml` 文件。
 
 **目录结构示例：**
-```
+```text
 simple-virus-total/
 ├── simple-virus-total.exe  (或相应系统的可执行文件)
 ├── config/
@@ -87,26 +87,47 @@ simple-virus-total/
 ```
 
 #### 2. 全量参数模板
-将以下内容复制到 `config/application.yml` 中，并根据实际情况修改：
+将以下内容复制到 `config/application.yml` 中，并根据实际情况修改（不需要更改的配置项可以直接删除，系统将使用默认值）：
 
 ```yaml
-# 外部配置文件模板, 使用默认值时可取消该配置项
+# 外部配置文件模板
 params:
+  # ==========================================
   # 基础设置
+  # ==========================================
   port: 8080               # 程序运行端口 (默认: 8080)
+  v-key: "your-virustotal-api-key" # VirusTotal API 密钥 (必填)
   
-  # API 密钥 (必填)
-  v-key: VirusTotal API Key
-  
-  # Google AI 设置
+  # ==========================================
+  # AI 模型设置 (Google GenAI - 默认)
+  # ==========================================
   google:
-    key: Google GenAI API Key                # 
-    model: gemma-4-120b-it   # 指定使用的 AI 模型名称, 默认 gemma-4-31b-i
-    search: false          # 是否开启 Google Search 联网增强 (默认: false)
-    thinking-level: high   # 推理深度/等级，默认 high (可选: minimal, low, medium, high)
+    key: "your-google-api-key" # Google GenAI API Key, 默认"-"占位符
+    model: gemma-4-31b-it      # 指定使用的 AI 模型名称 (默认: gemma-4-31b-it)
+    search: false              # 是否开启 Google Search 联网增强 (默认: false)
+    thinking-level: high       # 推理深度/等级 (默认: high, 可选: minimal, low, medium, high)
+
+  # ==========================================
+  # 自定义 AI 厂商设置 (兼容 OpenAI 接口规范)
+  # ==========================================
+  customer:
+    ai: false                  # 是否启用自定义 AI 厂商 (默认: false。设为 true 时将停用 Google AI)
+    base-url: "https://api.deepseek.com/v1" # 自定义厂商的 API 接口地址 (注意必须为 OpenAI 协议对应地址)
+    api-key: "your-custom-api-key"          # 自定义厂商的 API Key
+    model: "deepseek-chat"                  # 自定义厂商的模型名称
+    temperature: 0.0                        # 模型温度，安全分析建议保持低温度以保证严谨性 (默认: 0)
+
+  # ==========================================
+  # 外部专家技能库 (Skill Enhancement) 设置
+  # ==========================================
+  external:
+    enable: false              # 是否启用外部 Markdown 技能库增强 (默认: false)
+    dir: "D:/security-skills/" # 外部技能库的绝对路径 (系统会自动递归扫描该目录下的 .md 文件)
+    top-limit: 3              # 每次分析最多匹配并加载的技能数量，防止 Token 溢出 (默认: 3)
 ```
 
 #### 3. 为什么这样做？
 - **安全性**：避免将私有的 API Key 硬编码在 JAR 包中。
-- **灵活性**：用户可以直接通过文本编辑器修改配置，重启程序即可生效。
+- **灵活性**：用户可以直接通过文本编辑器修改配置，重启程序即可生效。支持无缝切换不同的 AI 大模型。
+- **可扩展性**：通过配置 `external.dir`，用户可以挂载自己的安全分析笔记或开源的 SOP 知识库（如 Anthropic-Cybersecurity-Skills），让本地 AI 瞬间掌握顶尖专家的分析逻辑。
 - **优先级**：Spring Boot 会优先读取 `config/application.yml` 中的值，从而覆盖打包时内置的默认配置。

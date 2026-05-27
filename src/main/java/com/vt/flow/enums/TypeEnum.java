@@ -1,7 +1,9 @@
 package com.vt.flow.enums;
 
+import com.vt.enums.MsgEnum;
 import com.vt.exception.WrapperException;
 import com.vt.flow.dto.InputContent;
+import com.vt.utils.MessageUtils;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -18,7 +20,7 @@ public enum TypeEnum {
             try (InputStream is = input.getFile().getInputStream()) {
                 return DigestUtils.sha256Hex(is);
             } catch (IOException e) {
-                throw new WrapperException("文件哈希计算失败", e);
+                throw new WrapperException(MessageUtils.getMessage(MsgEnum.SYS_FILE_HASH_ERROR), e);
             }
         }
     },

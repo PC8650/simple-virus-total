@@ -1,5 +1,6 @@
 package com.vt.flow.scan;
 
+import com.vt.enums.MsgEnum;
 import com.vt.flow.advisor.constant.ChainKey;
 import com.vt.flow.dto.InputContent;
 import com.vt.flow.enums.TypeEnum;
@@ -7,6 +8,7 @@ import com.vt.flow.scan.interfaces.Scanner;
 import com.vt.remote.api.IpApi;
 import com.vt.remote.dto.VtResult;
 import com.vt.remote.dto.vt.abs.UploadScanResp;
+import com.vt.utils.MessageUtils;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.springframework.ai.chat.client.ChatClientRequest;
@@ -28,7 +30,7 @@ public class IpScanner implements Scanner {
     @Override
     public void valid(InputContent input) {
         if (!validator.isValid(input.getPayload())) {
-            throw new IllegalArgumentException("Wrong ip format");
+            throw new IllegalArgumentException(MessageUtils.getMessage(MsgEnum.SCAN_ERR_IP_FORMAT));
         }
     }
 
