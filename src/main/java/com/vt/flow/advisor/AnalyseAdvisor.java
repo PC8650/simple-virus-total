@@ -1,16 +1,18 @@
 package com.vt.flow.advisor;
 
+import com.vt.enums.MsgEnum;
 import com.vt.exception.WrapperException;
 import com.vt.flow.advisor.constant.ChainKey;
 import com.vt.flow.component.CacheManager;
 import com.vt.flow.dto.CacheDto;
-import com.vt.flow.utils.FlowSseUtil;
 import com.vt.flow.scan.interfaces.Scanner;
+import com.vt.flow.utils.FlowSseUtil;
 import com.vt.flow.utils.PollUtil;
 import com.vt.remote.api.AnalyseApi;
 import com.vt.remote.dto.VtResult;
 import com.vt.remote.dto.vt.AnalyseResp;
 import com.vt.remote.dto.vt.abs.UploadScanResp;
+import com.vt.utils.MessageUtils;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.ai.chat.client.ChatClientRequest;
@@ -19,8 +21,6 @@ import org.springframework.ai.chat.client.advisor.api.StreamAdvisor;
 import org.springframework.ai.chat.client.advisor.api.StreamAdvisorChain;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
-import com.vt.enums.MsgEnum;
-import com.vt.utils.MessageUtils;
 
 /**
  * 分析顾问，通过扫描响应的分析id，轮询分析状态直到超时或完成

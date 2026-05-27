@@ -1,12 +1,14 @@
 package com.vt.flow.advisor;
 
 import com.google.gson.Gson;
+import com.vt.enums.MsgEnum;
 import com.vt.exception.WrapperException;
 import com.vt.flow.advisor.constant.ChainKey;
 import com.vt.flow.component.ExternalSkillManager;
 import com.vt.flow.dto.InputContent;
-import com.vt.flow.utils.FlowSseUtil;
 import com.vt.flow.dto.ReportContent;
+import com.vt.flow.utils.FlowSseUtil;
+import com.vt.utils.MessageUtils;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.ai.chat.client.ChatClientRequest;
@@ -20,8 +22,6 @@ import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
-import com.vt.enums.MsgEnum;
-import com.vt.utils.MessageUtils;
 
 import java.util.List;
 

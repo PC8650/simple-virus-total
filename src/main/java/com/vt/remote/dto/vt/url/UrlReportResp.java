@@ -1,11 +1,7 @@
 package com.vt.remote.dto.vt.url;
 
 import com.google.gson.annotations.SerializedName;
-import com.vt.remote.dto.vt.AnalyseResult;
-import com.vt.remote.dto.vt.AnalyseStats;
-import com.vt.remote.dto.vt.Link;
-import com.vt.remote.dto.vt.Vote;
-import com.vt.remote.dto.vt.Favicon;
+import com.vt.remote.dto.vt.*;
 import com.vt.remote.dto.vt.url.sub.Tracker;
 import io.swagger.v3.oas.annotations.media.Schema;
 

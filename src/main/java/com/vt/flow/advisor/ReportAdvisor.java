@@ -1,12 +1,14 @@
 package com.vt.flow.advisor;
 
+import com.vt.enums.MsgEnum;
 import com.vt.flow.advisor.constant.ChainKey;
-import com.vt.flow.utils.FlowSseUtil;
 import com.vt.flow.dto.ReportContent;
 import com.vt.flow.enums.TypeEnum;
 import com.vt.flow.scan.interfaces.Scanner;
+import com.vt.flow.utils.FlowSseUtil;
 import com.vt.flow.utils.PollUtil;
 import com.vt.remote.dto.VtResult;
+import com.vt.utils.MessageUtils;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.ai.chat.client.ChatClientRequest;
@@ -15,8 +17,6 @@ import org.springframework.ai.chat.client.advisor.api.StreamAdvisor;
 import org.springframework.ai.chat.client.advisor.api.StreamAdvisorChain;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
-import com.vt.enums.MsgEnum;
-import com.vt.utils.MessageUtils;
 
 /**
  * 报告顾问。获取报告

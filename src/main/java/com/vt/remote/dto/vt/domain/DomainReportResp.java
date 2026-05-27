@@ -5,7 +5,6 @@ import com.vt.remote.dto.vt.*;
 import com.vt.remote.dto.vt.domain.sub.CrowdsourcedContext;
 import com.vt.remote.dto.vt.domain.sub.DnsRecord;
 import com.vt.remote.dto.vt.domain.sub.PopularityRank;
-import com.vt.remote.dto.vt.SslCertificate;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.List;

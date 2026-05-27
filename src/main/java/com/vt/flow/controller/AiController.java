@@ -1,25 +1,26 @@
 package com.vt.flow.controller;
 
+import com.vt.enums.MsgEnum;
 import com.vt.flow.advisor.constant.ChainKey;
 import com.vt.flow.dto.InputContent;
-import com.vt.flow.vo.FlowResp;
-import lombok.RequiredArgsConstructor;
-import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-import org.springframework.http.MediaType;
-
 import com.vt.flow.utils.FlowSseUtil;
+import com.vt.flow.vo.FlowResp;
+import com.vt.utils.MessageUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import reactor.core.publisher.Flux;
 
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
-import com.vt.enums.MsgEnum;
-import com.vt.utils.MessageUtils;
 
 @Tag(name = "AI 分析流", description = "驱动 VirusTotal 完整分析链路的 AI 专家接口")
 @RestController
