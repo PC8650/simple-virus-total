@@ -2,101 +2,131 @@
 
 ## 1. 项目简介与目的
 
-**VirusTotal** (访问地址: [https://www.virustotal.com/](https://www.virustotal.com/)) 是一个免费且强大的安全情报服务平台，能够通过多款反病毒引擎和安全扫描工具对可疑文件、域名、IP 和 URL 进行深度检测。然而，VirusTotal 返回的原始数据极其庞杂（包含大量的 JSON 字段、专业术语如 ATT&CK 战术、JARM 指纹等），对非专业安全人员来说门槛较高。
+**VirusTotal**（[https://www.virustotal.com/](https://www.virustotal.com/)）是一个聚合多款反病毒引擎与安全扫描工具的情报平台，可对文件、URL、域名与 IP 进行检测。其返回的 JSON 体量大、字段专业（如 MITRE ATT&CK、沙箱行为、PE 结构等），对非安全从业人员阅读成本较高。
 
-**项目初衷**：通过对接 VirusTotal 接口获取原始分析数据，并接入大模型(默认 Google GenAI)，将这些晦涩难懂的专业数据转化为通俗易懂的“分析报告”。用户不仅能直接看到“有害/可疑/安全”的定性结论，还能通过大模型的“战术卡片”通俗地理解攻击原理和潜在危害。使普通用户能够更轻松的 **参考** VirusTotal 分析结果。
+**项目初衷**：对接 VirusTotal API v3 拉取扫描与报告数据，再经大模型（默认 Google GenAI，亦可切换为 OpenAI 兼容接口）将结果整理为可读的分析报告。用户可获得**有害 / 可疑 / 安全**的参考性结论，并通过战术卡片等方式理解关键行为含义。本工具输出仅供**辅助参考**，不能替代专业安全研判或 VirusTotal 官方结论。
+
+**核心分析链路**（`POST /vt/flow`，SSE 流式推送）：
+
+1. **Scan**：按类型提交 VT 扫描（命中本地缓存则跳过重复提交）。
+2. **Analyse**：轮询 `/analyses/{id}` 直至分析完成。
+3. **Report**：拉取对象报告；**文件类型**额外拉取动态行为报告与 MITRE 行为树。
+4. **Summary**：加载内置 Skill 提示词（可选叠加外部 Skill），流式生成专家报告。
 
 ---
 
 ## 2. API 对接与局限性声明
 
-本项目对接了 VirusTotal 的官方 API，但存在以下局限性：
-- **基于免费 API (Public API)**：项目完全基于 VT 免费接口开发，受到并发和调用频率的严格限制。
-- **功能覆盖有限**：目前仅对接了基础的**公开扫描 (Public Scan)** 和 **基础报告获取 (Basic Report)** 接口，涵盖对象包括 File (文件)、URL、Domain (域名) 和 IP 地址。
-- **参数折损**：由于免费版接口权限和复杂数据结构的清洗原因，在从 VT 原始响应向项目内部 DTO 转换的过程中，可能会丢失部分非核心的高级参数和深度动态行为追踪数据。
+本项目基于 VirusTotal **Public API v3**，受免费额度、速率与权限约束。
+
+**已对接能力（按对象类型）**：
+
+| 类型 | 主要接口能力 |
+| :--- | :--- |
+| **File** | 上传扫描（≤32MB 直传，更大文件走 upload_url）、重分析、静态报告、动态行为报告（`behaviours`）、MITRE 行为树（`behaviour_mitre_trees`）、活动汇总（`behaviour_summary`） |
+| **URL** | 提交扫描、重分析、获取报告 |
+| **Domain / IP** | 提交分析、获取报告 |
+
+**局限性**：
+
+- **速率与配额**：受 VT 免费 API 的 QPS、日配额等限制，高并发或大批量分析可能触发限流。
+- **数据映射折损**：VT 原始响应经 Gson 映射为项目 DTO，非核心或高阶字段可能被省略；部分沙箱/HTML/PCAP 等扩展能力未完整接入。
+- **AI 生成内容**：报告由大模型基于已拉取数据归纳，存在遗漏、概括或误判可能；MITRE 等章节以 VT 返回数据为准，模型不得擅自删减已提供的战术/技术条目（详见内置 `file_skill` 约束）。
+- **文件体积**：应用层上传上限 650MB（`application.yml`）；VT 侧对直传与分片上传另有 32MB 分界策略（见 `FileApi`）。
 
 ---
 
 ## 3. 开发环境与项目结构
 
 ### 核心环境
-- **Java 版本**：JDK 25
+
+- **Java**：25（`pom.xml`）
+- **框架**：Spring Boot 4.0.5、Spring AI 1.1.5（Google GenAI Starter）
+- **其他**：虚拟线程（`spring.threads.virtual.enabled=true`）、Caffeine 流程缓存、springdoc OpenAPI
 
 ### 目录结构简析
+
 ```text
 simple-virus-total
 ├── src/
 │   └── main/
 │       ├── java/com/vt/
-│       │   ├── config/          # 全局基础配置（HTTP/Gson/i18n 等）
-│       │   ├── enums/           # 国际化消息枚举
-│       │   ├── exception/       # 异常封装
-│       │   ├── utils/           # 通用工具类
-│       │   ├── flow/            # AI 业务流（扫描、轮询、Prompt 编排、SSE 输出）
-│       │   │   ├── advisor/     # Scan/Analyse/Report/Summary 顾问链
-│       │   │   │   └── constant/# advisor 链路常量
-│       │   │   ├── component/   # 流程组件（CacheManager/ExternalSkillManager）
-│       │   │   ├── config/      # AI 与外部技能配置绑定
-│       │   │   ├── controller/  # AI 业务入口控制层
-│       │   │   ├── dto/         # 流程数据传输对象
-│       │   │   ├── enums/       # 流程类型与技能枚举
-│       │   │   ├── model/       # 通用 ChatModel 适配
-│       │   │   ├── scan/        # 扫描器实现
-│       │   │   │   ├── factory/ # 扫描器工厂
-│       │   │   │   └── interfaces/ # 扫描器接口定义
-│       │   │   ├── utils/       # SSE、轮询、Markdown/YAML 解析等工具
-│       │   │   └── vo/          # 对前端输出结构
-│       │   ├── remote/          # VirusTotal API 交互层
-│       │   │   ├── api/         # VT 接口封装
-│       │   │   │   ├── constant/# API 常量
-│       │   │   │   └── enums/   # API 枚举
-│       │   │   ├── component/   # VT 远程调用组件（VtRemoter）
-│       │   │   ├── controller/  # 本地代理接口暴露层
-│       │   │   └── dto/         # VT 请求/响应对象
-│       │   │       └── vt/      # VT 细分对象（file/url/ip/domain 等）
+│       │   ├── config/          # 全局配置（HTTP、Gson、i18n）
+│       │   ├── enums/           # 系统消息枚举
+│       │   ├── exception/       # 统一异常封装
+│       │   ├── utils/           # 国际化等通用工具
+│       │   ├── flow/            # AI 分析主链路（Advisor 编排 + SSE）
+│       │   │   ├── advisor/     # Scan → Analyse → Report → Summary
+│       │   │   │   └── constant/# 链路上下文键
+│       │   │   ├── component/   # CacheManager、ExternalSkillManager
+│       │   │   ├── config/      # ChatClient、AiProvider、ExternalSkill 绑定
+│       │   │   ├── controller/  # /vt/flow 流式入口
+│       │   │   ├── dto/         # 输入、缓存、报告聚合对象
+│       │   │   ├── enums/       # 分析类型、内置 Skill 路径
+│       │   │   ├── model/       # OpenAI 兼容 ChatModel 适配
+│       │   │   ├── scan/        # 各类型 Scanner 与工厂
+│       │   │   │   ├── factory/
+│       │   │   │   └── interfaces/
+│       │   │   ├── utils/       # SSE、轮询、Markdown/YAML 解析
+│       │   │   └── vo/          # 流式响应结构
+│       │   ├── remote/          # VT API v3 封装与本地代理
+│       │   │   ├── api/         # File/Url/Ip/Domain/Analyse 调用
+│       │   │   │   ├── constant/# 体积阈值等常量
+│       │   │   │   └── enums/   # API 路径枚举
+│       │   │   ├── component/   # VtRemoter（HTTP 客户端）
+│       │   │   ├── controller/  # /file、/url、/ip、/domain 等直连代理
+│       │   │   └── dto/         # 上传封装与 VT 响应 DTO
+│       │   │       └── vt/      # 按对象拆分的报告子结构
 │       │   └── VirusTotalApplication.java
 │       └── resources/
-│           ├── application.yml  # Spring 配置入口（支持 params.* 外部覆盖）
-│           ├── i18n/            # 中英文消息包
-│           ├── skills/          # 内置分析 skill（file/url/ip/domain，中英文）
-│           └── static/          # Web 前端静态资源
-├── external_skill_guide.md      # 外部 skill 目录规范与使用说明
-├── package_command.md           # jpackage 打包与外部配置覆盖说明
+│           ├── application.yml  # 内置默认配置（支持 params.* 外部覆盖）
+│           ├── i18n/            # 界面与 SSE 文案（中/英）
+│           ├── skills/          # 内置分析 Skill（含 *_cn.md 备稿；运行时默认加载英文版）
+│           └── static/          # Web 前端（index.html / script.js / style.css）
+├── external_skill_guide.md      # 外部 Skill 规范
+├── package_command.md           # jpackage 打包与外部配置模板
 └── pom.xml
 ```
+
+**模块职责简述**：
+
+- **`remote`**：封装 VT HTTP 调用，并暴露 REST 代理便于调试或二次集成。
+- **`flow`**：面向用户的端到端分析编排；同一输入在 30 分钟内可走 Caffeine 缓存复用扫描上下文。
 
 ---
 
 ## 4. 核心配置参数说明 (`application.yml`)
 
-项目运行参数通过 `params.*` 覆盖 `application.yml` 中的占位符，推荐在外部 `config/application.yml` 中配置：
+运行时通过外部 `config/application.yml` 中的 **`params.*`** 覆盖占位符（Spring Boot 外部配置优先于 JAR 内默认值）。内置 `application.yml` 将 `params` 映射到 `server`、`spring.ai.google.genai`、`vt-key`、`external-skill`、`ai-provider` 等节点。
 
-| 参数路径 | 默认值 / 示例 | 说明 |
-| :--- | :--- | :--- |
-| `params.port` | `8080` | Web 服务的启动端口。 |
-| `params.v-key` | 无 (必填) | **VirusTotal API Key**，用于请求扫描报告。 |
-| `params.google.key` | 无 (必填) | **Google GenAI API Key**，用于驱动 AI 总结功能。 |
-| `params.google.model` | `gemma-4-31b-it` | 使用的 AI 模型版本。 |
-| `params.google.search` | `false` | 是否允许模型使用 Google Search 进行联网信息增强。 |
-| `params.google.thinking-level`| `high` | 模型的推理深度等级 (可选 `minimal` / `low` / `medium` / `high`)。 |
-| `params.customer.ai` | `false` | 是否启用自定义 AI 厂商（启用后走 `ai-provider.*` 分支，不使用默认 Google 模型）。 |
-| `params.customer.base-url` | 空 | 自定义 AI 接口地址（需兼容 OpenAI Chat Completions 协议）。 |
-| `params.customer.api-key` | 空 | 自定义 AI 厂商 API Key。 |
-| `params.customer.model` | 空 | 自定义 AI 模型名。 |
-| `params.customer.temperature` | `0` | 自定义 AI 温度参数，安全分析建议维持低温度。 |
-| `params.external.enable` | `false` | 是否启用外部 skill 增强。 |
-| `params.external.dir` | 空 | 外部 skill 根目录绝对路径。 |
-| `params.external.top-limit` | `3` | 单次最多注入的外部 skill 数量（必须 > 0 才生效）。 |
+| 参数路径 | 默认值 / 示例 | 说明                                                                               |
+| :--- | :--- |:---------------------------------------------------------------------------------|
+| `params.port` | `8080` | HTTP 服务端口。                                                                       |
+| `params.v-key` | 无（必填） | VirusTotal API Key，映射为 `vt-key`。                                                 |
+| `params.google.key` | 空 | Google GenAI API Key；**当 `params.customer.ai=false` 时必填**。                       |
+| `params.google.model` | `gemma-4-31b-it` | Google 模型名称。                                                                     |
+| `params.google.search` | `false` | 是否启用 Google Search 检索增强。                                                         |
+| `params.google.thinking-level` | `high` | 推理深度：`minimal` / `low` / `medium` / `high`。                                      |
+| `params.customer.ai` | `false` | 为 `true` 时使用 `GenericChatModel`（OpenAI Chat Completions 协议），不再使用 Google Starter。 |
+| `params.customer.base-url` | 空 | 自定义厂商 Base URL（如 `https://api.deepseek.com/v1` ）。                                |
+| `params.customer.api-key` | 空 | 自定义厂商 API Key（`customer.ai=true` 时必填）。                                           |
+| `params.customer.model` | 空 | 自定义模型名。                                                                          |
+| `params.customer.temperature` | `0` | 采样温度；安全分析场景建议保持较低值。                                                              |
+| `params.external.enable` | `false` | 是否启用外部 Skill 增强。                                                                 |
+| `params.external.dir` | 空 | 外部 Skill 根目录（绝对路径）；`enable=true` 且目录有效时启动扫描。                                     |
+| `params.external.top-limit` | `3` | 单次分析最多注入的外部 Skill 数量（须 > 0 且索引非空时生效）。                                            |
+
+> 完整外部配置示例见 `package_command.md` 第 2 节模板。
 
 ---
 
 ## 5. 外部 Skill 说明
 
 ### 功能定位
-外部 skill 用于在 AI 生成分析报告前，按 VirusTotal 返回内容进行标签匹配并注入额外专家知识。该能力由 `ExternalSkillManager` 在启动时完成索引构建。
+
+在 **Summary** 阶段，系统将 VT 报告 JSON（含文件的行为与 MITRE 数据）与内置 Skill 合并；若启用外部 Skill，则由 `ExternalSkillManager` 在启动时建立 `tag → .md 文件` 索引，按命中得分注入补充提示词。
 
 ### 启用配置
-在外部配置中设置以下参数：
 
 ```yaml
 params:
@@ -107,11 +137,13 @@ params:
 ```
 
 ### 文件组织与最小格式
-- 系统会递归扫描 `dir` 下所有 `.md` 文件。
-- 仅识别带 YAML Frontmatter 且包含 `tags` 字段的文档。
-- 若某个 skill 文件同级存在 `references/` 目录，会自动加载其中 `.md` 作为补充参考内容。
+
+- 递归扫描 `dir` 下所有 `.md` 文件。
+- 须含 YAML Frontmatter 且声明 `tags` 列表，否则跳过。
+- 主文件同级若存在 `references/` 目录，会一并注入其中 `.md`。
 
 示例：
+
 ```markdown
 ---
 description: "PE Overlay 检测"
@@ -126,30 +158,33 @@ tags:
 ```
 
 ### 匹配与排序机制
-- 基于标签命中做等权计分：每命中 1 个 tag 记 1 分。
-- 按得分降序选择前 `top-limit` 个 skill 注入提示词。
-- `top-limit` 设置越大，提示词越长，可能导致模型对原始 VT 数据关注下降。
 
-完整规范与最佳实践见 `external_skill_guide.md`。
+- 对 VT JSON 全文做小写化后，以**词边界正则**（`\b`）匹配 tag，降低误命中（如 `ip` 不匹配 `zip`）。
+- 每命中 1 个 tag 为该 Skill 计 1 分，按总分降序取前 `top-limit` 个注入。
+- `top-limit` 过大易稀释模型对原始 JSON 的关注，建议不超过 3。
+
+详细规范见 `external_skill_guide.md`。
 
 ---
 
 ## 6. 打包说明与外部参数配置
 
-本项目推荐使用 `jpackage` 打包为跨平台的“绿色版”应用程序映像 (app-image)。详细的打包参数与不同系统（Windows/macOS/Linux）的具体打包指引，请参阅项目根目录下的 `package_command.md`。
+推荐使用 `jpackage` 生成 **app-image** 绿色版，命令与平台差异见 `package_command.md`。
 
 **外部配置指引**：
-在软件打包分发后，为避免将 API Key 泄露或硬编码在程序内部，建议使用 Spring 的外部配置覆盖能力：
-1. 在生成的可执行文件（如 `simple-vt.exe`）同级目录下，手动创建一个 `config` 文件夹。
-2. 在其中创建 `application.yml`。
-3. 填入上述第 4 节中的 `params` 参数进行覆盖。程序启动时会自动优先加载此外部配置文件。
+
+1. 在可执行文件同级创建 `config/application.yml`（打包产物名称以 `jpackage --name` 为准，见 `package_command.md`）。
+2. 写入第 4 节 `params` 配置；Spring Boot 启动时优先加载该文件，覆盖 JAR 内默认值。
+3. 避免将 API Key 硬编码进构建产物。
 
 ---
 
 ## 7. 使用说明
 
-1. 确保配置了有效的 VirusTotal API Key 和 Google GenAI Key。
-2. 启动应用程序（可通过 IDE 直接启动 `VirusTotalApplication`，或运行打包后的可执行文件）。
-3. 打开浏览器，访问前端交互界面：
-   👉 **http://localhost:8080/index.html** (将 `localhost` 替换为你的服务器 IP，将 `8080` 替换为你配置的端口)
-4. 在页面中上传文件或输入 URL/IP/域名，点击分析即可体验可视化的 AI 威胁分析实况推流。
+1. 配置 **VirusTotal API Key**（`params.v-key`），并按所选 AI 路线配置 **Google Key** 或 **自定义厂商 Key**。
+2. 启动应用：IDE 运行 `com.vt.VirusTotalApplication`，或执行打包后的可执行文件。
+3. 访问 Web 界面：`http://localhost:8080/index.html` （端口以 `params.port` 为准）。
+4. 选择 FILE / URL / IP / DOMAIN，提交后由 **`POST /vt/flow`** 以 SSE 推送各阶段进度与最终报告；可通过 `language` 参数切换界面与流式文案语言（`zh_CN` / 默认英文资源）。
+5. （可选）通过 **`/swagger-ui.html`** 查看 OpenAPI；`/file`、`/url` 等 `remote` 代理接口可供直接调试 VT 原始能力。
+
+**说明**：内置 Skill 当前由 `SkillEnum` 加载 `skills/*_skill.md`（英文版）；`skills/*_cn.md` 为同目录备稿，替换 classpath 资源或调整枚举路径后可切换为中文版提示词。

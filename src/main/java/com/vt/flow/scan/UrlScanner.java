@@ -45,6 +45,7 @@ public class UrlScanner implements Scanner {
     @Override
     public String getReportId(ChatClientRequest chatClientRequest) {
         UploadScanResp scanResp = ChainKey.SCAN_RESP.get(chatClientRequest);
+        if (scanResp == null) return null;
         return scanResp.getIdSha256();
     }
 
