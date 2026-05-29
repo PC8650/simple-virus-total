@@ -141,7 +141,7 @@ If `behaviour` array is empty, shift 100% focus to static features (e.g. high en
 ### A. Scan Result Overview (Analysis Stats)
 - Overview: {malicious} Malicious / {suspicious} Suspicious / {total} Total
 - Core Detections: {Extract items from report.attributes.last_analysis_results where category is malicious}
-- Basis of Judgment: {Explain methodologies like blacklist, heuristic}
+- Basis of Judgment: {According to report.attributes.last_analysis_results.*.method, briefly describe the engine's detection methods and effectiveness}
 
 ### B. Static Feature Parsing (Static Attributes)
 - Signature Reputation: {Evaluate report.attributes.signature_info}

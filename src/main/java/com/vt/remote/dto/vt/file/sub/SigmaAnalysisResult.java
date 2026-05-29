@@ -3,6 +3,7 @@ package com.vt.remote.dto.vt.file.sub;
 import com.google.gson.annotations.SerializedName;
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import java.util.List;
 import java.util.Map;
 
 @Schema(description = "Sigma分析沙盒生成的EVTX文件结果")
@@ -15,7 +16,7 @@ public record SigmaAnalysisResult(
         String ruleSource,
         @SerializedName("match_context")
         @Schema(name = "match_context", description = "具体匹配事件")
-        MatchContext matchContext,
+        List<MatchContext> matchContext,
         @SerializedName("rule_level")
         @Schema(name = "rule_level", description = "规则级别，critical, high, medium, low")
         String ruleLevel,

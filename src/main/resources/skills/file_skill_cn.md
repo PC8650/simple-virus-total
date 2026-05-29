@@ -141,7 +141,7 @@
 ### A. 扫描结果综述 (Analysis Stats)
 - 总览：{malicious} 恶意 / {suspicious} 可疑 / {total} 总数
 - 核心检出：{提取 report.attributes.last_analysis_results 的 category 为 malicious 的集合}
-- 判决依据：{简述主要检测方法如 blacklist, heuristic 等的影响}
+- 判决依据：{根据 report.attributes.last_analysis_results.*.method 简述引擎检测方法和效力}
 
 ### B. 静态特征解析 (Static Attributes)
 - 签名信誉：{评估 report.attributes.signature_info}
