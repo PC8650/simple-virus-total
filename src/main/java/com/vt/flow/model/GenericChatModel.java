@@ -2,11 +2,19 @@ package com.vt.flow.model;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
+import com.vt.enums.MsgEnum;
+import com.vt.exception.WrapperException;
+import com.vt.utils.MessageUtils;
 import io.netty.resolver.DefaultAddressResolverGroup;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.metadata.ChatResponseMetadata;
+import org.springframework.ai.chat.metadata.DefaultUsage;
+import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.chat.model.Generation;
@@ -16,6 +24,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Flux;
 import reactor.netty.http.client.HttpClient;
 
@@ -37,7 +46,6 @@ public class GenericChatModel implements ChatModel {
         this.model = model;
         this.temperature = temperature;
         this.gson = gson;
-        // 使用 WebClient 替代 RestClient，以完美支持 Flux 和 SSE
         this.webClient = WebClient.builder()
                 .baseUrl(baseUrl)
                 .defaultHeader("Authorization", "Bearer " + apiKey)
@@ -48,28 +56,37 @@ public class GenericChatModel implements ChatModel {
 
     @NotNull
     @Override
-    @SuppressWarnings("unchecked")
     public ChatResponse call(Prompt prompt) {
         Map<String, Object> body = buildRequestBody(prompt, false);
 
         try {
-            Map<String, Object> response = webClient.post()
+            String responseStr = webClient.post()
                     .uri("/chat/completions")
                     .bodyValue(body)
                     .retrieve()
-                    .bodyToMono(Map.class)
+                    .bodyToMono(String.class)
                     .block();
 
-            assert response != null;
-            List<Map<String, Object>> choices = (List<Map<String, Object>>) response.get("choices");
-            String content = (String) ((Map<String, Object>) choices.getFirst().get("message")).get("content");
+            if (!StringUtils.hasText(responseStr)) {
+                throw new WrapperException(MessageUtils.getMessage(MsgEnum.LLM_ERR_EMPTY_RESPONSE));
+            }
 
-            return new ChatResponse(List.of(new Generation(new AssistantMessage(content))));
+            // 一次性使用 Gson 解析
+            JsonObject responseJson = gson.fromJson(responseStr, JsonObject.class);
 
-        } catch (org.springframework.web.reactive.function.client.WebClientResponseException e) {
-            log.error("LM API synchronization call failed! HTTP Status: {}, Response Body: {}",
+            JsonArray choices = responseJson.getAsJsonArray("choices");
+            String content = choices.get(0).getAsJsonObject()
+                    .getAsJsonObject("message")
+                    .get("content").getAsString();
+
+            ChatResponseMetadata metadata = buildMetadata(responseJson);
+
+            return new ChatResponse(List.of(new Generation(new AssistantMessage(content))), metadata);
+
+        } catch (WebClientResponseException e) {
+            log.error("LLM API synchronization call failed! HTTP Status: {}, Response Body: {}",
                     e.getStatusCode(), e.getResponseBodyAsString());
-            throw e;
+            throw new WrapperException(MessageUtils.getMessage(MsgEnum.LLM_ERR_SYNC_FAILED), e);
         }
     }
 
@@ -78,77 +95,102 @@ public class GenericChatModel implements ChatModel {
     public Flux<ChatResponse> stream(Prompt prompt) {
         Map<String, Object> body = buildRequestBody(prompt, true);
 
-        // 流式请求
         return webClient.post()
                 .uri("/chat/completions")
                 .bodyValue(body)
-                .accept(MediaType.TEXT_EVENT_STREAM) // 声明接收 SSE 流
+                .accept(MediaType.TEXT_EVENT_STREAM)
                 .retrieve()
                 .bodyToFlux(String.class)
-                .doOnError(org.springframework.web.reactive.function.client.WebClientResponseException.class, e -> {
+                .doOnError(WebClientResponseException.class, e -> {
                     log.error("LLM API stream call failed! HTTP Status: {}, Response Body: {}",
                             e.getStatusCode(), e.getResponseBodyAsString());
+                    throw new WrapperException(MessageUtils.getMessage(MsgEnum.LLM_ERR_STREAM_FAILED), e);
                 })
-                // 过滤掉空行和 OpenAI 流结束的标志 "[DONE]"
-                .filter(data -> StringUtils.hasText(data) && !"[DONE]".equals(data.trim()))
+                // 1. 过滤掉 SSE 协议中可能存在的空行 (Keep-alive ping)
+                .filter(StringUtils::hasText)
+                // 2. 不是OpenAI 流结束的标志 "[DONE]"就一直处理
+                .takeWhile(data -> !"[DONE]".equals(data))
                 .map(this::parseStreamChunk);
     }
 
     @Override
     public ChatOptions getDefaultOptions() {
-        // 简单实现，暂不处理动态 Options
         return null;
     }
 
-    /**
-     * 组装 OpenAI 格式的请求体
-     */
     private Map<String, Object> buildRequestBody(Prompt prompt, boolean isStream) {
         List<Map<String, String>> messages = prompt.getInstructions().stream()
                 .map(m -> Map.of("role", m.getMessageType().getValue(), "content", m.getText()))
                 .toList();
 
+        if (isStream) {
+            return Map.of(
+                    "model", model,
+                    "messages", messages,
+                    "temperature", temperature,
+                    "stream", true,
+                    "stream_options", Map.of("include_usage", true));
+        }
+
         return Map.of(
                 "model", model,
                 "messages", messages,
                 "temperature", temperature,
-                "stream", isStream // 动态控制是否开启流式
-        );
+                "stream", false);
     }
 
-    /**
-     * 解析 OpenAI 流式返回的 Chunk 数据
-     * 格式示例: {"choices":[{"delta":{"content":"Hello"}}]}
-     */
     private ChatResponse parseStreamChunk(String data) {
         StringBuilder contentBuilder = new StringBuilder();
+        ChatResponseMetadata metadata = null;
         try {
             JsonObject jsonObject = gson.fromJson(data, JsonObject.class);
-            JsonArray choices = jsonObject.getAsJsonArray("choices");
 
+            JsonArray choices = jsonObject.getAsJsonArray("choices");
             if (choices != null && !choices.isEmpty()) {
                 JsonObject delta = choices.get(0).getAsJsonObject().getAsJsonObject("delta");
                 if (delta != null) {
-                    // 处理深度思考内容 (Reasoning Content)
-                    if (delta.has("reasoning_content") && !delta.get("reasoning_content").isJsonNull()) {
-                        String reasoning = delta.get("reasoning_content").getAsString();
-                        // 可选：如果你想在前端展示思考过程，可以加上特定标记
-                        // contentBuilder.append("<think>").append(reasoning).append("</think>");
-                        contentBuilder.append(reasoning);
+                    JsonElement reasoningEl = delta.get("reasoning_content");
+                    if (reasoningEl != null && !reasoningEl.isJsonNull()) {
+                        contentBuilder.append(reasoningEl.getAsString());
                     }
 
-                    //安全处理正式内容 (Content)
-                    if (delta.has("content") && !delta.get("content").isJsonNull()) {
-                        contentBuilder.append(delta.get("content").getAsString());
+                    JsonElement contentEl = delta.get("content");
+                    if (contentEl != null && !contentEl.isJsonNull()) {
+                        contentBuilder.append(contentEl.getAsString());
                     }
                 }
             }
+
+            metadata = buildMetadata(jsonObject);
         } catch (Exception e) {
             log.error("Failed to parse stream chunk: {}", data, e);
+            throw new WrapperException(MessageUtils.getMessage(MsgEnum.LLM_ERR_PARSE_CHUNK_FAILED), e);
         }
 
-        // 封装为 Spring AI 的标准响应格式
-        return new ChatResponse(List.of(new Generation(new AssistantMessage(contentBuilder.toString()))));
+        return new ChatResponse(List.of(new Generation(new AssistantMessage(contentBuilder.toString()))), metadata);
+    }
+
+    private ChatResponseMetadata buildMetadata(JsonObject jsonObject) {
+        Usage usage = null;
+        JsonElement usageElement = jsonObject.get("usage");
+
+        if (usageElement != null && !usageElement.isJsonNull() && usageElement.isJsonObject()) {
+            JsonObject usageJson = usageElement.getAsJsonObject();
+
+            int promptTokens = getAsInt(usageJson.get("prompt_tokens"));
+            int completionTokens = getAsInt(usageJson.get("completion_tokens"));
+            int totalTokens = getAsInt(usageJson.get("total_tokens"));
+
+            usage = new DefaultUsage(promptTokens, completionTokens, totalTokens);
+        }
+
+        return ChatResponseMetadata.builder()
+                .usage(usage)
+                .build();
+    }
+
+    private int getAsInt(JsonElement el) {
+        return (el instanceof JsonPrimitive p && p.isNumber()) ? p.getAsInt() : 0;
     }
 
 }

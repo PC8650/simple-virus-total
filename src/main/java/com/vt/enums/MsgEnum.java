@@ -53,7 +53,13 @@ public enum MsgEnum {
     //  AI External Skill Enhancement
     ENHANCEMENT_HEADER("enhancement.header"),
     ENHANCEMENT_GUIDE_TITLE("enhancement.guide.title"),
-    ENHANCEMENT_REFERENCE_TITLE("enhancement.reference.title");
+    ENHANCEMENT_REFERENCE_TITLE("enhancement.reference.title"),
+
+    // LLM API Exceptions
+    LLM_ERR_EMPTY_RESPONSE("llm.err.empty.response"),
+    LLM_ERR_SYNC_FAILED("llm.err.sync.failed"),
+    LLM_ERR_STREAM_FAILED("llm.err.stream.failed"),
+    LLM_ERR_PARSE_CHUNK_FAILED("llm.err.parse.chunk.failed");
 
     private final String key;
 
