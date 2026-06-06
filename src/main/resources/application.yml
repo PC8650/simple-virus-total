@@ -5,6 +5,7 @@ spring:
     multipart:
       max-file-size: 650MB
       max-request-size: 651MB
+      location: ./temp
   messages:
     basename: i18n/messages
   threads:
@@ -24,6 +25,8 @@ spring:
 
 server:
   port: ${params.port:8080}
+  tomcat:
+    basedir: ./temp/tomcat
 
 springdoc:
   api-docs:

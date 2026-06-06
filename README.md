@@ -2,7 +2,7 @@
 
 ## 1. 项目简介与目的
 
-**VirusTotal**（[https://www.virustotal.com/](https://www.virustotal.com/)）是一个聚合多款反病毒引擎与安全扫描工具的情报平台，可对文件、URL、域名与 IP 进行检测。其返回的 JSON 体量大、字段专业（如 MITRE ATT&CK、沙箱行为、PE 结构等），对非安全从业人员阅读成本较高。
+**[VirusTotal](https://www.virustotal.com/)** 是一个聚合多款反病毒引擎与安全扫描工具的情报平台，可对文件、URL、域名与 IP 进行检测。其返回的 JSON 体量大、字段专业（如 MITRE ATT&CK、沙箱行为、PE 结构等），对非安全从业人员阅读成本较高。
 
 **项目初衷**：对接 VirusTotal API v3 拉取扫描与报告数据，再经大模型（默认 Google GenAI，亦可切换为 OpenAI 兼容接口）将结果整理为可读的分析报告。用户可获得**有害 / 可疑 / 安全**的参考性结论，并通过战术卡片等方式理解关键行为含义。本工具输出仅供**辅助参考**，不能替代专业安全研判或 VirusTotal 官方结论。
 
@@ -53,6 +53,7 @@ simple-virus-total
 ├── src/
 │   └── main/
 │       ├── java/com/vt/
+│       │   ├── component/       # TempCleaner 临时文件清理器
 │       │   ├── config/          # 全局配置（HTTP、Gson、i18n）
 │       │   ├── enums/           # 系统消息枚举
 │       │   ├── exception/       # 统一异常封装
@@ -181,7 +182,19 @@ tags:
 
 ---
 
-## 7. 使用说明
+## 7. 文件读写与系统隐私说明
+
+本程序在设计上遵循安全与绿色的原则，关于文件读写与系统隐私的行为具体说明如下：
+
+1. **禁用 JVM 临时性能日志写入**：若打包命令中未省略 `--java-options "-XX:-UsePerfData"` 参数，JVM 将禁用 Performance Data 性能数据收集。这会防止 JVM 退出时在系统临时目录或工作目录下生成 `hsperfdata_*` 等临时数据文件，从而避免这些临时文件因句柄被占用而导致退出清理失败。
+2. **本地环境绿色化隔离**：程序运行期间仅在可执行文件（PE）同级生成 `./temp` 目录。该目录被重定向并用作内嵌 Tomcat 的 `basedir` 工作目录以及文件上传（Multipart）的临时缓存目录。所有产生的临时缓存文件会在程序正常关闭（JVM 退出）时由容器自动递归清理。
+3. **无额外外部文件读取**：
+   - **业务逻辑层面**：除了用户显式配置的**外部技能库目录**（`external.dir`）下匹配到的 `.md` 文件，以及**用户在分析文件时主动上传的文件**外，本程序业务代码不会读取用户计算机上的任何其他外部文件。
+   - **底层/系统层面**：除 JVM 加载自身运行所需的 JDK 系统类库、本程序 JAR 包内置的 Classpath 静态资源、以及显式挂载的外部配置文件（`config/application.yml`）外，Spring Boot 和 JVM 底层不存在任何越权扫描或未授权的文件读取行为，确保数据隐私安全。
+
+---
+
+## 8. 使用说明
 
 1. 配置 **VirusTotal API Key**（`params.v-key`），并按所选 AI 路线配置 **Google Key** 或 **自定义厂商 Key**。
 2. 启动应用：IDE 运行 `com.vt.VirusTotalApplication`，或执行打包后的可执行文件。
