@@ -275,7 +275,7 @@ public record FileBehaviourReportResp(
                 key： 修改过的注册表键。
                 value： 的值设置为注册表键。
                 """)
-           List<Map<String, String>> registryKeysSet,
+            List<Map<String, String>> registryKeysSet,
 
             @SerializedName("registry_keys_deleted")
             @Schema(name = "registry_keys_deleted", description = "被删除的Windows注册表键名称")

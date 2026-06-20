@@ -48,7 +48,7 @@ public record FileReportResp(
             Long firstSubmissionDate,
 
             @SerializedName("last_submission_date")
-           @Schema(name = "last_submission_date", description = "文件最近一次上传到 VirusTotal 的日期。UTC 时间戳")
+            @Schema(name = "last_submission_date", description = "文件最近一次上传到 VirusTotal 的日期。UTC 时间戳")
             Long lastSubmissionDate,
 
             @Schema(description = "根据 Unix 系统中常用的解析工具，猜测文件类型")
@@ -176,6 +176,18 @@ public record FileReportResp(
             @Schema(name = "crowdsourced_ai_results", description = "所有众包人工智能结果的摘要")
             List<CrowdsourcedAiResult> crowdsourcedAiResults,
 
+            @SerializedName("crowdsourced_ids_stats")
+            @Schema(name = "crowdsourced_ids_stats", description = "ids 统计结果")
+            CrowdsourcedIdsStats crowdsourcedIdsStats,
+
+            @SerializedName("crowdsourced_ids_results")
+            @Schema(name = "crowdsourced_ids_results", description = "文件的 IDS 匹配结果")
+            List<CrowdsourcedIdsResult> crowdsourcedIdsResults,
+
+            @SerializedName("crowdsourced_yara_results")
+            @Schema(name = "crowdsourced_yara_results", description = "根据众包规则匹配的 YARA")
+            List<CrowdsourcedYaraResult> crowdsourcedYaraResults,
+
             @SerializedName("threat_verdict")
             @Schema(name = "threat_verdict", description = """
                     威胁判决
@@ -188,7 +200,91 @@ public record FileReportResp(
 
             @SerializedName("threat_severity")
             @Schema(name = "threat_severity", description = "威胁验证程度。VT Enterprise users only")
-            ThreatSeverity threatSeverity
+            ThreatSeverity threatSeverity,
+
+            @SerializedName("popular_threat_classification")
+            @Schema(name = "popular_threat_classification", description = "威从反病毒软件判定和聚类哈希中提取的人类可读名称")
+            PopularThreatClassification popularThreatClassification,
+
+            @SerializedName("traffic_inspection")
+            @Schema(name = "traffic_inspection", description = "从 PCAP 网络捕获中提取的流量概念")
+            TrafficInspection trafficInspection,
+
+            @Schema(description = "PCAP 网络捕获匹配的Suricata警报（新兴威胁 ETPro 规则集）列表。key - 规则名称，value - 包含警报详细信息的字典")
+            Map<String, Suricata> suricata,
+
+            @SerializedName("known_distributors")
+            @Schema(name = "known_distributors", description = "有关文件分发者的信息")
+            KnownDistributors knownDistributors,
+
+            @SerializedName("link_info")
+            @Schema(name = "link_info", description = "关于 Microsoft Windows LNK 文件的信息")
+            LinkInfo linkInfo,
+
+            @SerializedName("class_info")
+            @Schema(name = "class_info", description = "关于 Java .class 字节码文件的信息")
+            ClassInfo classInfo,
+
+            @SerializedName("jar_info")
+            @Schema(name = "jar_info", description = "关于 Java jar 文件的信息关")
+            JarInfo jarInfo,
+
+            @SerializedName("deb_info")
+            @Schema(name = "deb_info", description = "关于Debian软件包的信息")
+            DebInfo debInfo,
+
+            @Schema(description = "有关 Android 文件的信息")
+            Androguard androguard,
+
+            @SerializedName("dmg_info")
+            @Schema(name = "dmg_info", description = "关于可挂载macOS磁盘镜像的信息")
+            DmgInfo dmgInfo,
+
+            @SerializedName("ipa_info")
+            @Schema(name = "ipa_info", description = "关于 IOS App Store 包文件的信息")
+            IpaInfo ipaInfo,
+
+            @SerializedName("html_info")
+            @Schema(name = "html_info", description = "HTML文件中的信息")
+            HtmlInfo htmlInfo,
+
+            @SerializedName("elf_info")
+            @Schema(name = "elf_info", description = "关于Unix ELF文件的信息")
+            ElfInfo elfInfo,
+
+            @SerializedName("dot_net_assembly")
+            @Schema(name = "dot_net_assembly", description = "关于Microsoft .NET文件的信息")
+            DotNetAssembly dotNetAssembly,
+
+            @SerializedName("dot_net_guids")
+            @Schema(name = "dot_net_guids", description = "Microsoft .NET 程序集的标识符")
+            DotNetGuid dotNetGuids,
+
+            @Schema(description = """
+                    识别多种工具和反病毒软件在 Windows PE 文件上使用的加壳程序。
+                    key工具名称，value是识别的加壳器，都是字符串
+                    """)
+            Map<String, String> packers,
+
+            @SerializedName("java_scriptInfo")
+            @Schema(name = "java_scriptInfo", description = "从 Javascript 文件中提取的信息")
+            JavascriptInfo javascriptInfo,
+
+            @SerializedName("pdf_info")
+            @Schema(name = "pdf_info", description = "有关 Adobe PDF 文件的信息")
+            PdfInfo pdfInfo,
+
+            @SerializedName("vba_info")
+            @Schema(name = "vba_info", description = "VBA宏信息")
+            VbaInfo vbaInfo,
+
+            @SerializedName("powershell_info")
+            @Schema(name = "powershell_info", description = "Powershell 文件信息")
+            PowershellInfo powershellInfo,
+
+            @Schema(description = "Wireshark 在处理文件时生成的元数据")
+            Wireshark wireshark
+
     ) {}
 
 }

@@ -75,6 +75,198 @@ SummaryAdvisor
       },
       "threat_verdict": "VERDICT_MALICIOUS",
       "crowdsourced_ai_results": [],
+      "crowdsourced_ids_stats": {
+        "high": 2,
+        "medium": 0,
+        "low": 0,
+        "info": 0
+      },
+      "crowdsourced_ids_results": [
+        {
+          "alert_severity": "high",
+          "rule_msg": "ET TROJAN...",
+          "rule_category": "A Network Trojan was detected",
+          "rule_id": "2012345",
+          "rule_source": "EmergingThreats",
+          "alert_context": [
+            {
+              "src_ip": "192.168.1.2",
+              "src_port": 50000,
+              "dest_ip": "1.2.3.4",
+              "dest_port": 80,
+              "protocol": "TCP",
+              "hostname": "evil.example",
+              "url": "http://evil.example/payload.exe"
+            }
+          ]
+        }
+      ],
+      "crowdsourced_yara_results": [
+        {
+          "rule_name": "suspicious_packer",
+          "author": "Alice",
+          "description": "Detects packed executable",
+          "ruleset_name": "Packers",
+          "ruleset_id": "01234",
+          "source": "Github",
+          "match_in_subfile": false
+        }
+      ],
+      "known_distributors": {
+        "distributors": ["Microsoft Corporation"],
+        "products": ["Windows OS"],
+        "filenames": ["cmd.exe"],
+        "links": [],
+        "data_sources": ["NSRL"]
+      },
+      "popular_threat_classification": {
+        "suggested_threat_label": "trojan.win32/emotet",
+        "popular_threat_category": [{ "value": "trojan", "count": 25 }],
+        "popular_threat_name": [{ "value": "emotet", "count": 15 }]
+      },
+      "link_info": {
+        "target_path": "C:\\Windows\\System32\\cmd.exe",
+        "command_line_arguments": "/c powershell.exe -w hidden -enc ...",
+        "working_directory": "C:\\Windows\\System32",
+        "creation_date": 1600000000,
+        "modification_date": 1600000000,
+        "access_date": 1600000000,
+        "mac_address": "00:11:22:33:44:55",
+        "machine_id": "desktop-abc",
+        "volume_serial_number": "1234-5678",
+        "volume_label": "System",
+        "extra_data": { "dlt_properties": {} }
+      },
+      "vba_info": {
+        "strings": ["AutoOpen", "Shell"],
+        "deobfuscated_strings": []
+      },
+      "pdf_info": {
+        "javascript": 1,
+        "js": 1,
+        "openaction": true,
+        "num_launch_actions": 0,
+        "embedded_file": 0,
+        "encrypted": false,
+        "flash": 0,
+        "xfa": 0,
+        "num_obj": 15,
+        "num_stream": 5
+      },
+      "powershell_info": {
+        "cmdlets": ["Invoke-Expression"],
+        "cmdlets_alias": ["iex"],
+        "dotnet_calls": ["System.Net.WebClient"],
+        "functions": ["DecryptPayload"],
+        "ps_variables": ["payload"]
+      },
+      "html_info": {
+        "title": "Welcome",
+        "hrefs": ["http://evil.example"],
+        "iframes": [],
+        "meta": [{ "name": "description", "content": "..." }],
+        "scripts": [],
+        "trackers": []
+      },
+      "javascript_info": {
+        "tags": ["eval", "unescape", "obfuscated"]
+      },
+      "class_info": {
+        "name": "com/example/Main",
+        "extend": "java/lang/Object",
+        "implement": [],
+        "methods": [],
+        "provides": [],
+        "requires": [],
+        "constants": ["http://evil.example/api"]
+      },
+      "jar_info": {
+        "filenames": ["META-INF/MANIFEST.MF", "com/example/Main.class"],
+        "files_by_type": { "class": 1, "MF": 1 },
+        "manifest": "Manifest-Version: 1.0\r\n...",
+        "strings": [],
+        "packages": ["com/example"]
+      },
+      "elf_info": {
+        "header": { "machine": "Advanced Micro Devices X86-64", "entrypoint": 4194304, "os_abi": "UNIX - System V" },
+        "import_list": [{ "library_name": "libc.so.6" }],
+        "export_list": [],
+        "shared_libraries": ["libc.so.6"],
+        "packers": ["UPX"],
+        "section_list": [],
+        "segment_list": []
+      },
+      "androguard": {
+        "packages": ["com.example.app"],
+        "main_activity": "com.example.app.MainActivity",
+        "android_version_code": "1",
+        "android_version_name": "1.0",
+        "min_sdk_version": "21",
+        "target_sdk_version": "33",
+        "activities": [],
+        "services": [],
+        "receivers": [],
+        "providers": [],
+        "permission_details": {
+          "android.permission.INTERNET": {
+            "permission_type": "normal",
+            "description": "..."
+          }
+        },
+        "risk_indicator": {
+          "APK": { "Count": 1 },
+          "PERM": { "Count": 5 }
+        },
+        "certificate": { "issuer": "...", "subject": "..." },
+        "strings_information": ["http://c2.example/"]
+      },
+      "ipa_info": {
+        "apps": [{ "commands": [], "libs": [], "segments": [] }],
+        "itunes": {},
+        "plist": {
+          "CFBundleIdentifier": "com.example.ios",
+          "MinimumOSVersion": "12.0"
+        },
+        "provision": {
+          "ExpirationDate": "...",
+          "Entitlements": { "get-task-allow": true }
+        }
+      },
+      "dmg_info": {
+        "dmg_version": "1.0",
+        "blkx": [],
+        "gpt": { "partitions": [] },
+        "hfs": {
+          "volume_data": {},
+          "num_files": 100,
+          "main_executable": {},
+          "info_plist": {}
+        }
+      },
+      "traffic_inspection": {
+        "http": [
+          {
+            "url": "http://evil.example/payload.exe",
+            "remote_host": "1.2.3.4:80",
+            "method": "GET",
+            "response_code": 200,
+            "userAgent": "Mozilla/5.0...",
+            "binary_hash": "...",
+            "binary_magic": "MZ"
+          }
+        ]
+      },
+      "suricata": {
+        "ET MALWARE": { "suricata_alerts": ["ET TROJAN..."] }
+      },
+      "wireshark": {
+        "dns": [{ "query": "evil.example", "answers": ["1.2.3.4"] }],
+        "pcap": {
+          "captureDuration": "10.5",
+          "dataSize": "1024",
+          "numberOfPackets": 15
+        }
+      },
       "pe_info": {
         "imphash": "...",
         "entry_point": 4096,
@@ -364,6 +556,26 @@ SummaryAdvisor
 | `report.attributes.last_analysis_results.*.category` | 结果分类（malicious/suspicious 等） | |
 | `report.attributes.threat_verdict` | VT 官方威胁结论 | 如 VERDICT_MALICIOUS |
 | `report.attributes.crowdsourced_ai_results` | 众包 AI 分析摘要 | |
+| `report.attributes.crowdsourced_ids_stats` | IDS 警报按严重等级统计 | |
+| `report.attributes.crowdsourced_ids_results` | 匹配的入侵检测系统警报明细 | List |
+| `report.attributes.crowdsourced_yara_results` | 命中的众包 YARA 规则明细 | List |
+| `report.attributes.known_distributors` | 已知软件分发者特征 | |
+| `report.attributes.popular_threat_classification` | 业界引擎聚类统计的流行威胁分类 | |
+| `report.attributes.link_info` | Windows LNK 快捷方式信息 | 对象含 `target_path` 等 |
+| `report.attributes.vba_info` | Office VBA 宏特征 | 对象含 `deobfuscated_strings` 等 |
+| `report.attributes.pdf_info` | Adobe PDF 结构与内嵌动作信息 | 对象含 `javascript` 计数等 |
+| `report.attributes.powershell_info` | PowerShell 脚本执行特征 | 对象含 `cmdlets` 等 |
+| `report.attributes.html_info` | HTML 网页结构信息 | 对象含 `scripts`, `iframes` 等 |
+| `report.attributes.javascript_info` | JS 或 PDF 内嵌脚本提取的特征标签 | 序列化可能为 `java_scriptInfo` |
+| `report.attributes.class_info` | Java Class 字节码结构信息 | 对象含 `name`, `methods` 等 |
+| `report.attributes.jar_info` | Java JAR 包结构信息 | 对象含 `filenames`, `files_by_type` 等 |
+| `report.attributes.elf_info` | Linux ELF 二进制执行文件结构 | 对象含 `header`, `import_list` 等 |
+| `report.attributes.androguard` | Android APK & AXML 结构信息 | 对象含 `activities`, `permission_details` 等 |
+| `report.attributes.ipa_info` | iOS App (IPA) 包信息 | 对象含 `plist`, `provision` 等 |
+| `report.attributes.dmg_info` | macOS DMG 镜像包信息 | 对象含 `dmg_version`, `hfs` 等 |
+| `report.attributes.traffic_inspection` | PCAP 网络抓包（HTTP/Pcap） | 对象含 `http` 列表 |
+| `report.attributes.suricata` | PCAP 命中的 Suricata 规则字典 | Map |
+| `report.attributes.wireshark` | PCAP 的 DNS 解析及流量统计信息 | 对象含 `dns`, `pcap` |
 | `report.attributes.pe_info.imphash` | PE 导入表哈希（家族关联） | |
 | `report.attributes.pe_info.entry_point` | 程序入口点偏移 | |
 | `report.attributes.pe_info.timestamp` | PE 编译时间戳 | |
