@@ -5,6 +5,7 @@ import com.vt.flow.advisor.constant.ChainKey;
 import com.vt.flow.component.CacheManager;
 import com.vt.flow.dto.CacheDto;
 import com.vt.flow.dto.InputContent;
+import com.vt.flow.enums.ContentEnum;
 import com.vt.flow.scan.factory.ScannerFactory;
 import com.vt.flow.scan.interfaces.Scanner;
 import com.vt.flow.utils.FlowSseUtil;
@@ -48,7 +49,7 @@ public class ScanAdvisor implements StreamAdvisor {
         InputContent inputContent = ChainKey.INPUT.get(chatClientRequest);
 
         String lang = inputContent.getLanguage();
-        FlowSseUtil.sendNotMainText(chatClientRequest, getName(),
+        FlowSseUtil.send(chatClientRequest, getName(), ContentEnum.NOTICE,
                 MessageUtils.getMessage(lang, MsgEnum.SSE_SCAN_SUBMIT, inputContent.getType()));
 
         Scanner scanner = scannerFactory.get(inputContent.getType());

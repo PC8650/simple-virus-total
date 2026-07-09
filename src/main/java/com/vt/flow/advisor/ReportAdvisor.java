@@ -5,6 +5,7 @@ import com.vt.flow.advisor.constant.ChainKey;
 import com.vt.flow.component.CacheManager;
 import com.vt.flow.dto.CacheDto;
 import com.vt.flow.dto.ReportContent;
+import com.vt.flow.enums.ContentEnum;
 import com.vt.flow.enums.TypeEnum;
 import com.vt.flow.scan.interfaces.Scanner;
 import com.vt.flow.utils.FlowSseUtil;
@@ -36,13 +37,13 @@ public class ReportAdvisor implements StreamAdvisor {
         com.vt.flow.dto.InputContent inputContent = ChainKey.INPUT.get(chatClientRequest);
         String lang = inputContent.getLanguage();
 
-        FlowSseUtil.sendNotMainText(chatClientRequest, getName(),
+        FlowSseUtil.send(chatClientRequest, getName(), ContentEnum.NOTICE,
                 MessageUtils.getMessage(lang, MsgEnum.SSE_REPORT_SANDBOX_START, reportId));
         return PollUtil.poll(600000L, 30000L,
                 () -> {
                     VtResult<?> behaviourReport = scanner.getBehaviourReport(reportId);
                     String process = behaviourReport.getMeta().getOrDefault(metaKey, "[]").toString();
-                    FlowSseUtil.sendNotMainText(chatClientRequest, getName(),
+                    FlowSseUtil.send(chatClientRequest, getName(), ContentEnum.NOTICE,
                             MessageUtils.getMessage(lang, MsgEnum.SSE_REPORT_SANDBOX_POLLING, process));
                     return behaviourReport;
                 },
@@ -80,7 +81,7 @@ public class ReportAdvisor implements StreamAdvisor {
 
         // 获取报告
         String lang = ChainKey.INPUT.get(chatClientRequest).getLanguage();
-        FlowSseUtil.sendNotMainText(chatClientRequest, getName(),
+        FlowSseUtil.send(chatClientRequest, getName(), ContentEnum.NOTICE,
                 MessageUtils.getMessage(lang, MsgEnum.SSE_REPORT_FETCH, reportId));
         VtResult<?> report = scanner.getReport(reportId);
 
@@ -92,13 +93,13 @@ public class ReportAdvisor implements StreamAdvisor {
             VtResult<?> behaviourReport = getBehaviourReport(scanner, reportId, chatClientRequest);
             behaviourReportData = behaviourReport.getData();
             // 获取 战术/技术 汇总
-            FlowSseUtil.sendNotMainText(chatClientRequest, getName(),
+            FlowSseUtil.send(chatClientRequest, getName(), ContentEnum.NOTICE,
                     MessageUtils.getMessage(lang, MsgEnum.SSE_REPORT_MITRE_START, reportId));
             VtResult<?> behaviourMitre = scanner.getBehaviourMitre(reportId);
             behaviourMitreData = behaviourMitre.getData();
         }
 
-        FlowSseUtil.sendNotMainText(chatClientRequest, getName(),
+        FlowSseUtil.send(chatClientRequest, getName(), ContentEnum.NOTICE,
                 MessageUtils.getMessage(lang, MsgEnum.SSE_REPORT_SUMMARY, reportId));
 
         ReportContent reportContent = new ReportContent()

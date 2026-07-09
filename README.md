@@ -1,5 +1,3 @@
-# Simple VirusTotal AI Threat Analysis Platform
-
 ## 1. 项目简介与目的
 
 **[VirusTotal](https://www.virustotal.com/)** 是一个聚合多款反病毒引擎与安全扫描工具的情报平台，可对文件、URL、域名与 IP 进行检测。其返回的 JSON 体量大、字段专业（如 MITRE ATT&CK、沙箱行为、PE 结构等），对非安全从业人员阅读成本较高。

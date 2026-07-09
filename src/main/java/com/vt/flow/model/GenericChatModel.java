@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 零依赖的 OpenAI 协议适配器 (支持同步与流式 Flux)
+ * 简单的 OpenAI 协议适配器 (支持同步与流式 Flux)
  */
 @Slf4j
 public class GenericChatModel implements ChatModel {
@@ -150,7 +150,8 @@ public class GenericChatModel implements ChatModel {
                 JsonObject delta = choices.get(0).getAsJsonObject().getAsJsonObject("delta");
                 if (delta != null) {
                     JsonElement reasoningEl = delta.get("reasoning_content");
-                    if (reasoningEl != null && !reasoningEl.isJsonNull()) {
+                    boolean reasoning = reasoningEl != null && !reasoningEl.isJsonNull();
+                    if (reasoning) {
                         contentBuilder.append(reasoningEl.getAsString());
                     }
 
@@ -182,11 +183,46 @@ public class GenericChatModel implements ChatModel {
             int totalTokens = getAsInt(usageJson.get("total_tokens"));
 
             usage = new DefaultUsage(promptTokens, completionTokens, totalTokens);
+            jsonObject.remove("usage");
+            jsonObject.add("usage", gson.toJsonTree(usage));
         }
 
-        return ChatResponseMetadata.builder()
-                .usage(usage)
-                .build();
+        // 检测是否包含 reasoning_content（流式 delta 或同步 message）
+        boolean hasReasoning = false;
+        JsonArray choices = jsonObject.getAsJsonArray("choices");
+        if (choices != null && !choices.isEmpty()) {
+            JsonObject firstChoice = choices.get(0).getAsJsonObject();
+            // 非流式：choices[0].message.reasoning_content
+            JsonElement message = firstChoice.get("message");
+            if (message != null && !message.isJsonNull()) {
+                JsonElement rc = message.getAsJsonObject().get("reasoning_content");
+                hasReasoning = rc != null && !rc.isJsonNull();
+            }
+            // 流式：choices[0].delta.reasoning_content
+            if (!hasReasoning) {
+                JsonElement delta = firstChoice.get("delta");
+                if (delta != null && !delta.isJsonNull()) {
+                    JsonElement rc = delta.getAsJsonObject().get("reasoning_content");
+                    hasReasoning = rc != null && !rc.isJsonNull();
+                }
+            }
+        }
+
+        ChatResponseMetadata metadata;
+        if (hasReasoning) {
+            metadata =  ChatResponseMetadata.builder()
+                    //不用于实际解析输出，只占位判断
+                    .metadata(Map.of("reasoning_content", ""))
+                    .usage(usage)
+                    .build();
+        }else {
+            metadata = ChatResponseMetadata.builder()
+                    .usage(usage)
+                    .build();
+        }
+
+        return metadata;
+
     }
 
     private int getAsInt(JsonElement el) {

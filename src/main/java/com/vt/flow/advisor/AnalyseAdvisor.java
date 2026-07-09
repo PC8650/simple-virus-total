@@ -5,6 +5,7 @@ import com.vt.exception.WrapperException;
 import com.vt.flow.advisor.constant.ChainKey;
 import com.vt.flow.component.CacheManager;
 import com.vt.flow.dto.CacheDto;
+import com.vt.flow.enums.ContentEnum;
 import com.vt.flow.scan.interfaces.Scanner;
 import com.vt.flow.utils.FlowSseUtil;
 import com.vt.flow.utils.PollUtil;
@@ -36,14 +37,14 @@ public class AnalyseAdvisor implements StreamAdvisor {
         com.vt.flow.dto.InputContent inputContent = ChainKey.INPUT.get(chatClientRequest);
         String lang = inputContent.getLanguage();
 
-        FlowSseUtil.sendNotMainText(chatClientRequest, getName(),
+        FlowSseUtil.send(chatClientRequest, getName(), ContentEnum.NOTICE,
                 MessageUtils.getMessage(lang, MsgEnum.SSE_ANALYSE_START, analyseId));
         return PollUtil.poll(300000L, 15000L,
                 () -> {
                     VtResult<AnalyseResp> analyseResp = scanner.apiRemote(() -> api.analyse(analyseId),
                             "Analyse status fetch failed: ");
                     String status = analyseResp.getData().attributes().status();
-                    FlowSseUtil.sendNotMainText(chatClientRequest, getName(),
+                    FlowSseUtil.send(chatClientRequest, getName(), ContentEnum.NOTICE,
                             MessageUtils.getMessage(lang, MsgEnum.SSE_ANALYSE_POLLING, status));
                     return analyseResp;
                 },
@@ -78,7 +79,7 @@ public class AnalyseAdvisor implements StreamAdvisor {
         } else if (cache.hasReportId()) {
             // 已有缓存的报告id
             String lang = ChainKey.INPUT.get(chatClientRequest).getLanguage();
-            FlowSseUtil.sendNotMainText(chatClientRequest, getName(),
+            FlowSseUtil.send(chatClientRequest, getName(), ContentEnum.NOTICE,
                     MessageUtils.getMessage(lang, MsgEnum.SSE_ANALYSE_CACHED));
         } else if (cache.hasAnalyseId()) {
             // 只有分析id

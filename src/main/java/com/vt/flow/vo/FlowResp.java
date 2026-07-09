@@ -1,5 +1,6 @@
 package com.vt.flow.vo;
 
+import com.vt.flow.enums.ContentEnum;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 
@@ -24,9 +25,15 @@ public class FlowResp{
             String advisor,
             @Schema(description = "内容")
             String content,
-            @Schema(description = "是否为正文")
-            boolean mainText
-    ){}
+            @Schema(description = "类型")
+            String type,
+            @Schema(description = "是否折叠")
+            boolean fold
+    ){
+        public static Attributes init(String advisor, String content, ContentEnum contentEnum) {
+            return new Attributes(advisor, content, contentEnum.name(), contentEnum.isFold());
+        }
+    }
 
     public void addAttributes(Attributes attributes){
         flowAttributes

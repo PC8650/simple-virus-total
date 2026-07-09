@@ -1,13 +1,16 @@
 package com.vt.flow.controller;
 
 import com.vt.flow.advisor.constant.ChainKey;
+import com.vt.flow.config.AiProviderConfig;
 import com.vt.flow.dto.InputContent;
+import com.vt.flow.enums.ContentEnum;
 import com.vt.flow.vo.FlowResp;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.metadata.ChatResponseMetadata;
 import org.springframework.ai.chat.metadata.Usage;
 import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.google.genai.metadata.GoogleGenAiUsage;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,7 +22,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
@@ -33,6 +38,7 @@ import com.vt.utils.MessageUtils;
 public class AiController {
 
     private final ChatClient vtClient;
+    private final AiProviderConfig aiProviderConfig;
 
     @Operation(summary = "发起流式分析任务", description = "提交文件/域名/IP/URL，并以 SSE 流的形式实时推送分析节点的详细专家报告。")
     @PostMapping(path = "/flow", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
@@ -59,6 +65,8 @@ public class AiController {
                 }
 
                 AtomicReference<Usage> finalUsage = new AtomicReference<>();
+                AtomicReference<Integer> thoughtsTokenCountRecord = new AtomicReference<>();
+                AtomicBoolean isThought = new AtomicBoolean(true);
 
                 ChatClient.StreamResponseSpec spec = vtClient.prompt(userPrompt)
                         .advisors((a) -> a.params(chainContent))
@@ -68,10 +76,14 @@ public class AiController {
                         response -> {
                             updateUsage(finalUsage, response);
                             String text = response.getResult().getOutput().getText();
-                            FlowSseUtil.send(chainContent, current.get(), text);
+                            if (isThought(response, thoughtsTokenCountRecord, isThought)) {
+                                FlowSseUtil.send(chainContent, current.get(), ContentEnum.THOUGHT, text);
+                            }else {
+                                FlowSseUtil.send(chainContent, current.get(), ContentEnum.MAIN_TEXT, text);
+                            }
                         },
                         error -> {
-                            FlowSseUtil.sendFinish(chainContent, current.get(),
+                            FlowSseUtil.sendFinish(chainContent, current.get(), ContentEnum.ERROR,
                                     MessageUtils.getMessage(lang, MsgEnum.SSE_TASK_ERROR, error.getMessage()));
                             emitter.completeWithError(error);
                         },
@@ -81,14 +93,14 @@ public class AiController {
                             int totalTokens = getTokens(usage, Usage::getTotalTokens);
                             // 思考/缓存/工具 ... 不一定放在Usage::getCompletionTokens中，这里做减法，将去算入输出token
                             int completionTokens = totalTokens - promptTokens;
-                            FlowSseUtil.sendFinishNotMainText(chainContent, current.get(),
+                            FlowSseUtil.sendFinish(chainContent, current.get(), ContentEnum.NOTICE,
                                     MessageUtils.getMessage(lang, MsgEnum.SSE_TASK_FINISH,
                                             promptTokens, completionTokens, totalTokens));
                             emitter.complete();
                         }
                 );
             } catch (Exception e) {
-                FlowSseUtil.sendFinish(chainContent, current.get(),
+                FlowSseUtil.sendFinish(chainContent, current.get(),  ContentEnum.ERROR,
                         MessageUtils.getMessage(lang, MsgEnum.SSE_TASK_INTERNAL_ERROR, e.getMessage()));
                 emitter.completeWithError(e);
             }
@@ -105,7 +117,7 @@ public class AiController {
      */
     private void updateUsage(AtomicReference<Usage> finalUsage, ChatResponse response) {
         ChatResponseMetadata metadata = response.getMetadata();
-        if (metadata != null && metadata.getUsage() != null) {
+        if (metadata.getUsage() != null) {
             finalUsage.set(metadata.getUsage());
         }
     }
@@ -113,6 +125,29 @@ public class AiController {
     private int getTokens(Usage usage, Function<Usage, Integer> getTokens) {
         if (usage == null) return 0;
         return Optional.ofNullable(getTokens.apply(usage)).orElse(0);
+    }
+
+    private boolean isThought(ChatResponse response, AtomicReference<Integer> thoughtsTokenCountRecord, AtomicBoolean isThought) {
+        // 已经判定为正文后，不再重复判断逻辑
+        boolean thought = isThought.get();
+        if (!thought) return thought;
+
+        ChatResponseMetadata metadata = response.getMetadata();
+
+        if (aiProviderConfig.isCustomer()) {
+            // open ai
+            thought = metadata.containsKey("reasoning_content");
+        }else {
+            // google gen ai
+            int thoughtsTokenCount = 0;
+            if (metadata.getUsage() instanceof GoogleGenAiUsage googleUsage) {
+                thoughtsTokenCount = Optional.ofNullable(googleUsage.getThoughtsTokenCount()).orElse(0);
+            }
+            thought =  thoughtsTokenCount > 0 && !Objects.equals(thoughtsTokenCountRecord.getAndSet(thoughtsTokenCount), thoughtsTokenCount);
+        }
+
+        isThought.set(thought);
+        return thought;
     }
 
 }

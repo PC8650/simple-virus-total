@@ -7,6 +7,7 @@ import com.vt.flow.advisor.constant.ChainKey;
 import com.vt.flow.component.ExternalSkillManager;
 import com.vt.flow.dto.InputContent;
 import com.vt.flow.dto.ReportContent;
+import com.vt.flow.enums.ContentEnum;
 import com.vt.flow.utils.FlowSseUtil;
 import com.vt.utils.MessageUtils;
 import lombok.RequiredArgsConstructor;
@@ -83,13 +84,20 @@ public class SummaryAdvisor implements StreamAdvisor {
         // 使用工具类推送实况
         InputContent inputContent = ChainKey.INPUT.get(chatClientRequest);
         String lang = inputContent.getLanguage();
-        FlowSseUtil.sendNotMainText(chatClientRequest, getName(),
-                MessageUtils.getMessage(lang, MsgEnum.SSE_SUMMARY_START));
+        FlowSseUtil.send(chatClientRequest, getName(), ContentEnum.NOTICE,
+                MessageUtils.getMessage(lang, MsgEnum.SSE_SUMMARY_PROMPT));
 
         String sysPrompt = systemPrompt(reportContent, contentJson);
 
         // 将 JSON 数据作为用户提示词，并加上明确的分析引导语
         String usrPrompt = usrPrompt(inputContent, contentJson);
+
+        //推送最终的提示词，用于审查核实
+        FlowSseUtil.send(chatClientRequest, getName(), ContentEnum.NOTICE,
+                MessageUtils.getMessage(lang, MsgEnum.SSE_SUMMARY_PROMPT_AUDIT));
+
+        FlowSseUtil.send(chatClientRequest, getName(), ContentEnum.PROMPT,
+                MessageUtils.getMessage(lang, MsgEnum.SSE_SUMMARY_PROMPT_CONTENT, sysPrompt, usrPrompt));
 
         Message systemMessage = new SystemMessage(sysPrompt);
         Message userMessage = new UserMessage(usrPrompt);
@@ -99,6 +107,9 @@ public class SummaryAdvisor implements StreamAdvisor {
                 .context(chatClientRequest.context())
                 .prompt(new Prompt(List.of(systemMessage, userMessage), chatClientRequest.prompt().getOptions()))
                 .build();
+
+        FlowSseUtil.send(chatClientRequest, getName(), ContentEnum.NOTICE,
+                MessageUtils.getMessage(lang, MsgEnum.SSE_SUMMARY_START_ANALYSE));
 
         return streamAdvisorChain.nextStream(newRequest);
     }
