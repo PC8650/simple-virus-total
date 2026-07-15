@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Threat Intel | VirusTotal 深度分析</title>
+    <title>SVT</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
@@ -12,7 +12,6 @@
 <div class="app-container">
     <!-- 控制面板 -->
     <aside class="sidebar">
-
         <form id="scanForm">
             <div class="form-group">
                 <label for="type" data-i18n="typeLabel">分析类型</label>
@@ -66,6 +65,9 @@
                 <div id="loader" class="hidden">...</div>
             </button>
         </form>
+        <button id="sidebarToggle" class="sidebar-toggle" data-i18n-title="sidebarToggle" title="折叠/展开侧边栏">
+            <span class="toggle-arrow">◀</span>
+        </button>
     </aside>
 
     <!-- 分析实况 -->

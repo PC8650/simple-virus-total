@@ -37,13 +37,13 @@ public class SummaryAdvisor implements StreamAdvisor {
 
     private final ExternalSkillManager externalSkillManager;
 
-    private String systemPrompt(ReportContent reportContent, String contentJson) {
+    private String systemPrompt(String lang, ReportContent reportContent, String contentJson) {
         String skillContent = reportContent.getType().getSkill().getSkillContent();
         if (!StringUtils.hasText(skillContent)) {
-            throw new WrapperException(MessageUtils.getMessage(MsgEnum.SYS_SKILL_LOAD_ERROR));
+            throw new WrapperException(MessageUtils.getMessage(lang, MsgEnum.SYS_SKILL_LOAD_ERROR));
         }
 
-        String externalSkill = externalSkillManager.externalGuidBuild(contentJson);
+        String externalSkill = externalSkillManager.externalGuidBuild(lang, contentJson);
 
         if (StringUtils.hasText(externalSkill)) {
             return skillContent + "\n\n" + externalSkill;
@@ -51,18 +51,17 @@ public class SummaryAdvisor implements StreamAdvisor {
         return skillContent;
     }
 
-    private String usrPrompt(InputContent inputContent, String contentJson) {
+    private String usrPrompt(String lang, String desc, String contentJson) {
         StringBuilder builder = new StringBuilder();
-        String lang = inputContent.getLanguage();
 
         // 1. 核心任务指令
-        builder.append(MessageUtils.getMessage(lang, MsgEnum.PROMPT_SUMMARY_TASK, inputContent.getLanguage()))
+        builder.append(MessageUtils.getMessage(lang, MsgEnum.PROMPT_SUMMARY_TASK, lang))
                 .append("\n");
 
         // 2. 补充背景上下文
-        if (StringUtils.hasText(inputContent.getDescription())) {
+        if (StringUtils.hasText(desc)) {
             builder.append(MessageUtils.getMessage(lang, MsgEnum.PROMPT_SUMMARY_BG_TITLE))
-                    .append(inputContent.getDescription())
+                    .append(desc)
                     .append("\n\n");
         }
 
@@ -87,17 +86,24 @@ public class SummaryAdvisor implements StreamAdvisor {
         FlowSseUtil.send(chatClientRequest, getName(), ContentEnum.NOTICE,
                 MessageUtils.getMessage(lang, MsgEnum.SSE_SUMMARY_PROMPT));
 
-        String sysPrompt = systemPrompt(reportContent, contentJson);
+        String sysPrompt = systemPrompt(lang, reportContent, contentJson);
 
         // 将 JSON 数据作为用户提示词，并加上明确的分析引导语
-        String usrPrompt = usrPrompt(inputContent, contentJson);
+        String usrPrompt = usrPrompt(lang, inputContent.getDescription(), contentJson);
 
         //推送最终的提示词，用于审查核实
         FlowSseUtil.send(chatClientRequest, getName(), ContentEnum.NOTICE,
                 MessageUtils.getMessage(lang, MsgEnum.SSE_SUMMARY_PROMPT_AUDIT));
 
-        FlowSseUtil.send(chatClientRequest, getName(), ContentEnum.PROMPT,
-                MessageUtils.getMessage(lang, MsgEnum.SSE_SUMMARY_PROMPT_CONTENT, sysPrompt, usrPrompt));
+        FlowSseUtil.send(chatClientRequest, getName(), ContentEnum.NOTICE,
+                MessageUtils.getMessage(lang, MsgEnum.SSE_SUMMARY_PROMPT_SYS));
+
+        FlowSseUtil.send(chatClientRequest, getName(), ContentEnum.PROMPT, sysPrompt);
+
+        FlowSseUtil.send(chatClientRequest, getName(), ContentEnum.NOTICE,
+                MessageUtils.getMessage(lang, MsgEnum.SSE_SUMMARY_PROMPT_USR));
+
+        FlowSseUtil.send(chatClientRequest, getName(), ContentEnum.PROMPT, usrPrompt);
 
         Message systemMessage = new SystemMessage(sysPrompt);
         Message userMessage = new UserMessage(usrPrompt);

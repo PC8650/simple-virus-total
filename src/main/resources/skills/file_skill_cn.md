@@ -14,7 +14,7 @@
     - **强制双统计**：MITRE 章节必须同时给出“出现次数（不去重）”与“唯一数量（按 ID 去重）”。
 - **无假设分析**：仅根据数据说话。缺失的数据必须标记为“未发现相关数据”。
 - **输出前自检 (自我反思机制)**：输出前自查是否遗漏了任何数组或字典内的深层对象。
-- **JavaScript 风险解读**：将 `report.attributes.java_scriptInfo.tags` / `report.attributes.javascript_info.tags` 视为风险信号，而不是最终结论。`eval`、`document.write`、`unescape`、`write+unescape`、`Aes.Ctr.decrypt`、`obfuscated`、`malformed` 等标签，常见于代码解混淆、DOM 注入、页面重定向或分阶段载荷执行。必须结合容器类型、内嵌 URL、沙箱行为与网络证据再做定性。
+- **JavaScript 风险解读**：将 `report.attributes.javascript_info.tags` 视为风险信号，而不是最终结论。`eval`、`document.write`、`unescape`、`write+unescape`、`Aes.Ctr.decrypt`、`obfuscated`、`malformed` 等标签，常见于代码解混淆、DOM 注入、页面重定向或分阶段载荷执行。必须结合容器类型、内嵌 URL、沙箱行为与网络证据再做定性。
 
 ---  
 
@@ -22,7 +22,7 @@
 
 ### 2.1 基础元数据
 - `id`: 文件在 VT 的唯一标识（通常对应 `report.id`）。
-- `type`: 对象类型（file）。
+- `type`: 对象类型（对应 `report.type`，固定值为 `file`）。
 - `report.attributes.md5` / `report.attributes.sha1` / `report.attributes.sha256`: 文件哈希指纹。
 - `report.attributes.size`: 字节大小。
 - `report.attributes.meaningful_name` / `report.attributes.names`: 原始文件名及其已知别名。
@@ -31,6 +31,7 @@
 - `report.attributes.unique_sources`: 来源唯一性。
 - `report.attributes.reputation`: VT 社区信誉分（负值代表社区极度反感）。
 - `report.attributes.tags` / `report.attributes.type_tags`: 静态标签列表。清点并重点提取 `packed`, `encrypted`, `exploit`, `dropper` 等关键标签。
+- `report.attributes.last_analysis_date` / `report.attributes.last_modification_date`: 最近扫描时间与 VT 对象更新时间。用于说明数据新鲜度。
 
 ### 2.2 扫描结论与众包评级
 - `report.attributes.last_analysis_stats`: 扫描引擎统计汇总。请读取 `malicious`, `suspicious`, `undetected`, `harmless`, `failure`, `timeout` 的数值。
@@ -96,18 +97,18 @@
 - `functions`: 脚本内声明的自定义函数名称列表。
 - `ps_variables`: 使用的变量名称列表。
 
-#### 2.3.6 HTML 网页与脚本 (`report.attributes.html_info` 与 `report.attributes.java_scriptInfo` / `report.attributes.javascript_info`)
+#### 2.3.6 HTML 网页与脚本 (`report.attributes.html_info` 与 `report.attributes.javascript_info`)
 - `report.attributes.html_info.title`: 网页标题。
 - `report.attributes.html_info.hrefs`: 所有超链接中提取的 URL 目标列表。
 - `report.attributes.html_info.iframes`: 包含的嵌套框架属性。
 - `report.attributes.html_info.meta`: Meta 元标签的名称和内容列表。
 - `report.attributes.html_info.scripts`: 网页包含的 Script 脚本及对应的 `sha256`。
 - `report.attributes.html_info.trackers`: 网页包含的第三方监控/追踪脚本列表。
-- `report.attributes.java_scriptInfo.tags` / `report.attributes.javascript_info.tags`: 从 JS 或 PDF 嵌入脚本中提取出的代码特征标签（如 `eval`, `unescape`, `obfuscated`, `aes-encoded`）。
+- `report.attributes.javascript_info.tags`: 从 JS 或 PDF 嵌入脚本中提取出的代码特征标签（如 `eval`, `unescape`, `obfuscated`, `aes-encoded`）。
     - 安全解读：这些标签不是最终结论，而是脚本复杂度与滥用风险的信号。`eval` 与 `document.write` 可能意味着运行时代码执行或 DOM 注入；`unescape`、`write+unescape`、`Aes.Ctr.decrypt` 常见于载荷解包或分阶段解码；`obfuscated` 与 `malformed` 往往表示反分析或异常脚本结构；`charAt`、`charCodeAt`、`fromCharCode`、`replace`、`substr`、`parseInt`、`Math` 常被混淆器用于字符串/数字重组。
     - 分析提示：当这些高风险标签与外部 URL、隐藏 iframe、PDF 的 launch 动作、沙箱执行痕迹或网络抓取同时出现时，应提高风险等级。单独一个标签并不足以直接下恶意结论。
 
-#### 2.3.6.1 JavaScript 特征情报 (`report.attributes.java_scriptInfo` / `report.attributes.javascript_info`)
+#### 2.3.6.1 JavaScript 特征情报 (`report.attributes.javascript_info`)
 - `tags`: 从 HTML、PDF 内嵌脚本或其他含脚本容器中提取的脚本行为标签。分析时先统计数量，再映射到混淆、解密、DOM 滥用、重定向逻辑或载荷分阶段投递等类别。
 - `tags` 安全含义：
     - `eval`、`write`、`document.write`、`location`：运行时执行、内容注入或重定向。
@@ -160,14 +161,29 @@
 - `report.attributes.wireshark.dns`: DNS 请求及其解析结果列表。
 - `report.attributes.wireshark.pcap`: 网络捕获元数据，包含持续时间 `captureDuration`、包大小 `dataSize`、包总数 `numberOfPackets` 等。
 
+#### 2.3.13 压缩归档 / 捆绑包 (`report.attributes.bundle_info`)
+- 当 `report.attributes.bundle_info` 存在，或当 `report.attributes.tags` / `report.attributes.type_tags` / `report.attributes.type_extension` 表明目标是 ZIP、RAR、7Z、TAR、GZIP、BZIP、ZLIB 等归档文件或压缩载荷时，触发本小节分析。
+- `report.attributes.bundle_info.type`: 归档/容器类型。需与 `report.attributes.type_extension`、`report.attributes.type_tags` 和文件名扩展名进行对比，用于识别类型不一致或伪装容器。
+- `report.attributes.bundle_info.num_children`: 归档内文件/目录数量。必须明确计数，并说明该捆绑包为空、小型，还是异常庞大。
+- `report.attributes.bundle_info.extensions`: (Map 结构) 归档内文件扩展名计数。必须统计并遍历 EVERY key；重点关注 `exe`、`dll`、`scr`、`js`、`vbs`、`ps1`、`bat`、`cmd`、`lnk`、`jar`、`apk`、`docm`、`xlsm`、`pdf` 等可执行、脚本或文档载荷类型。
+- `report.attributes.bundle_info.file_types`: (Map 结构) 归档内文件类型计数。必须统计并遍历 EVERY key；需与 `extensions` 的分布对比，以发现扩展名/真实类型不一致或嵌套载荷线索。
+- `report.attributes.bundle_info.uncompressed_size`: 未压缩内容总大小（bytes）。需与 `report.attributes.size` 对比以估算压缩比；极高压缩比可能提示压缩炸弹风险或高度打包，但只能作为辅助证据。
+- `report.attributes.bundle_info.highest_datetime` / `report.attributes.bundle_info.lowest_datetime`: 归档内文件的最新与最早时间戳。对异常古老、未来时间或跨度极不一致的时间戳，应记录为元数据异常，而不是单独作为恶意证明。
+- `report.attributes.bundle_info.beginning`: 某些格式（如 ZLIB/GZIP）的解压后头部/起始字节。可用时，用它识别内部载荷格式。
+- `report.attributes.bundle_info.error`: 解压或解析错误信息。必须明确报告；可考虑加密、损坏、截断、不支持或刻意畸形的归档可能性，但不得在缺少佐证时推断为恶意。
+- 归档分析必须聚焦于容器风险：嵌套可执行/脚本载荷、扩展名与类型不一致、异常压缩比、可疑时间戳、解析错误，以及与 AV/YARA/IDS/动态行为的关联。压缩或捆绑本身不足以支撑恶意结论。
+
 ---  
 
 
 ### 2.4 签名与信誉
 - `report.attributes.signature_info.verified`: 签名校验状态。
-- `report.attributes.signature_info.status`: 证书状态（如 Valid, Revoked）。
 - `report.attributes.signature_info.signers`: 签名者名称。
-- `report.attributes.signature_info.thumbprint`: 证书指纹。
+- `report.attributes.signature_info.signers details[*].status`: 每个签名者证书/签名状态（如 Valid、Revoked、Expired 或证书链异常）。
+- `report.attributes.signature_info.signers details[*].thumbprint`: 每个签名者证书指纹。
+- `report.attributes.signature_info.counter signers details[*].status`: 存在时间戳或副署名数据时，每个副署名者证书/签名状态。
+- `report.attributes.signature_info.counter signers details[*].thumbprint`: 每个副署名者证书指纹。
+- `report.attributes.signature_info.x509[*].thumbprint` / `report.attributes.signature_info.x509[*].thumbprint_sha256` / `report.attributes.signature_info.x509[*].thumbprint_md5`: x509 证书列表下返回的证书链指纹。
 
 ---
 
@@ -245,15 +261,15 @@
 
 #### 规则：
 
-1. `report.attributes.last_analysis_stats.malicious > 3`
+1. `report.attributes.last_analysis_stats.malicious` > 3
 
    → 初始定性：**[有害]**
 
-2. `report.attributes.last_analysis_stats.malicious ∈ [1,3]`
+2. `report.attributes.last_analysis_stats.malicious` ∈ [1,3]
 
    → 初始定性：**[可疑]**
 
-3. `report.attributes.last_analysis_stats.malicious = 0`
+3. `report.attributes.last_analysis_stats.malicious` = 0
 
    → 初始定性：**[安全]**
 

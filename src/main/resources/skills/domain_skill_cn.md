@@ -21,10 +21,11 @@
 ### 2.2 核心扫描结果
 - `report.attributes.last_analysis_stats`: 引擎扫描汇总。请读取 `malicious`, `suspicious`, `harmless`, `undetected` 的数值。
 - `report.attributes.last_analysis_results`: (Map 结构) 各引擎判定明细。请统计字典键数量，提取 `category` 为 `malicious` 的 `engine_name`、`method` 和 `result`。
+- `report.attributes.last_analysis_date` / `report.attributes.last_modification_date`: 最近扫描时间与 VT 对象更新时间。用于说明数据新鲜度。
 
 ### 2.3 分类与标签
 - `report.attributes.categories`: (Map 结构) 安全厂商对该域名的分类。提取 `phishing`、`malware`、`c2` 等。
-- `report.attributes.tags`: (List 结构) 标签数组。提取 `malicious`, `dga` 等。
+- `report.attributes.tags`: (List 结构) 标签数组。清点并遍历所有标签，提取 `malicious`、`dga`、`phishing`、`c2`、`parking`、`sinkhole` 或其他基础设施标签。
 
 ### 2.4 注册与时间信息
 - `report.attributes.tld`: 顶级域名后缀。
@@ -37,15 +38,24 @@
 
 ### 2.5 DNS 记录
 - `report.attributes.last_dns_records`: (List 结构) 最近解析记录。**必须清点该数组的长度并逐一遍历提取**。
-    - 针对数组的每一个对象，提取 `type`（A/MX/CNAME 等）、`value`（解析目标）、`ttl`（存活时间）。
-    - 重点关注 TTL 极短暗示的 Fast Flux 技术，或 MX 记录异常。
+    - 针对数组的每一个对象，提取 `type`、`value` 和 `ttl`。
+    - `report.attributes.last_dns_records[*].priority`: MX/SRV 优先级。数值越低优先级越高；检查异常的邮件路由。
+    - `report.attributes.last_dns_records[*].flag` / `report.attributes.last_dns_records[*].tag`: 当 `report.attributes.last_dns_records[*].type` 为 `CAA` 时的 CAA 控制字段；提取 `issue` 或 `issuewild` 等证书颁发限制。
+    - `report.attributes.last_dns_records[*].serial` / `report.attributes.last_dns_records[*].refresh` / `report.attributes.last_dns_records[*].retry` / `report.attributes.last_dns_records[*].expire` / `report.attributes.last_dns_records[*].minimum` / `report.attributes.last_dns_records[*].rname`: SOA 相关运维元数据。存在时用于描述区域生命周期和管理线索。
+    - 重点关注 TTL 极短暗示的 Fast Flux 技术、掩盖最终主机的 CNAME 链、异常 MX 记录、异常 CAA 策略，或与域名生命周期不一致的 SOA 值。
 - `report.attributes.last_dns_records_date`: DNS 记录更新时间。
 
 ### 2.6 SSL 证书
 - `report.attributes.last_https_certificate`: 最近获取的 SSL 证书对象。如果对象非空，按以下路径提取：
     - `report.attributes.last_https_certificate.subject.CN`: 证书主域名。
     - `report.attributes.last_https_certificate.issuer`: (Map 结构) 颁发机构字典。
-    - `report.attributes.last_https_certificate.validity.not_after`: 有效期截止日。
+    - `report.attributes.last_https_certificate.validity.not_before` / `report.attributes.last_https_certificate.validity.not_after`: 证书有效期窗口。
+    - `report.attributes.last_https_certificate.first_seen_date`: VT 首次观测到该证书的时间。
+    - `report.attributes.last_https_certificate.thumbprint_sha256`: 证书 SHA256 指纹，用于基础设施复用关联。
+    - `report.attributes.last_https_certificate.signature_algorithm`: 证书签名算法。
+    - `report.attributes.last_https_certificate.public_key.algorithm`: 公钥算法。
+    - `report.attributes.last_https_certificate.public_key.rsa.key_size`: 当公钥算法为 RSA 时的密钥长度。
+    - `report.attributes.last_https_certificate.extensions.key_usage` / `report.attributes.last_https_certificate.extensions.extended_key_usage`: 证书密钥用途列表。如存在，必须清点并遍历。
     - `report.attributes.last_https_certificate.extensions.subject_alternative_name`: (List 结构) SAN 关联备用域名数组。清点长度并提取。
 - `report.attributes.last_https_certificate_date`: 获取证书的时间。
 
@@ -57,6 +67,7 @@
 - `report.attributes.reputation`: VT 社区信誉分（负值代表恶意倾向）。
 - `report.attributes.total_votes`: 社区投票汇总。
 - `report.attributes.crowdsourced_context`: (List 结构) 众包安全上下文。清点数组，提取人工安全补充说明。
+    - `report.attributes.crowdsourced_context[*].title` / `severity` / `details` / `source` / `timestamp`: 遍历每一项并保留严重性与来源上下文。
 
 ### 2.9 Favicon 图标
 - `report.attributes.favicon.raw_md5` / `dhash`: 网站图标哈希，可用于辅助识别钓鱼仿冒。
@@ -71,8 +82,8 @@
 
 ### 阶段二：意图行为判定 (一票否决)
 满足以下任一意图特征，必须判定为 **[有害/恶意]**：
-- **[仿冒/钓鱼意图]**：`categories` 包含 phishing，或 favicon 哈希异常。
-- **[C2 通信意图]**：`categories` 含 c2，或 `tags` 含 dga，或 `jarm` 匹配 C2 框架。
+- **[仿冒/钓鱼意图]**：`categories` 包含 phishing，或 favicon 哈希看起来异常且得到引擎检出、众包上下文或可疑页面/基础设施分类佐证。
+- **[C2 通信意图]**：`categories` 含 c2，或 `tags` 含 dga，或 `jarm` 匹配 C2 框架，并由检出、负面信誉、DNS 记录或众包上下文佐证。
 - **[垃圾/传播意图]**：`categories` 含 spam/malware，或异常 MX 记录。
 - **[基础设施滥用意图]**：域名新注册且有引擎检出。
 - **[规避意图]**：DNS A 记录 TTL 极短暗示 Fast Flux，或存在 DoT 加密滥用。
@@ -80,6 +91,7 @@
 ### 阶段三：综合定性
 - **[安全]**：`malicious` 为 0，正向 `reputation`，流行度高，无上述特征。
 - **[可疑]**：新注册免费 TLD，无流行度排名，负面信誉，或存在匿名注册。
+- DNS TTL、无流行度排名、favicon 哈希、JARM、新注册或单个分类标签均属于辅助信号。不得将其中任意单点作为恶意定性的唯一依据。
 
 ---
 
@@ -107,17 +119,21 @@
 ### C. DNS 记录分析
 - 核心解析：{遍历提取 report.attributes.last_dns_records 数组中的各项记录}
 - TTL 特征：{分析 TTL 是否异常短暂}
-- 关联 IP 风险：{解析目标信誉评估}
+- DNS 细节字段：{存在时提取 priority、CAA flag/tag、SOA serial/refresh/retry/expire/minimum/rname 字段}
+- 关联基础设施边界：{仅描述 DNS 值中出现的关联 IP/域名。除非提供的数据或外部知识注入明确包含其信誉，否则不得推断关联 IP 信誉}
 
 ### D. SSL 证书与 JARM 分析
 - 证书绑定域名：{主域名及遍历提取的 report.attributes.last_https_certificate.extensions.subject_alternative_name 数组}
-- 证书颁发机构：{提取 issuer 字典} / 有效期: {validity.not_after}
+- 证书颁发机构：{提取 issuer 字典} / 有效期: {validity.not_before 至 validity.not_after}
+- 证书指纹：{提取 thumbprint_sha256、first_seen_date、signature_algorithm、公钥算法/密钥长度和 key usage 字段}
 - JARM 哈希：{提取 report.attributes.jarm 及其关联意义}
 
 ### E. 信誉、流行度与众包分析
 - 社区信誉：{评估 report.attributes.reputation}
 - 流行度排名：{遍历 report.attributes.popularity_ranks 字典}
 - 安全分类：{遍历 report.attributes.categories 字典}
+- 标签：{遍历 report.attributes.tags 数组}
+- Favicon 关联：{如存在，评估 report.attributes.favicon.raw_md5 和 report.attributes.favicon.dhash}
 - 众包上下文：{遍历提取 report.attributes.crowdsourced_context 数组的关键信息}
 
 ### F. 专家最终判决依据

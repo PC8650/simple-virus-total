@@ -7,12 +7,13 @@ import lombok.Getter;
 @AllArgsConstructor
 public enum ContentEnum {
 
-    ERROR(false),
-    NOTICE(false),
-    PROMPT(true),
-    THOUGHT(true),
-    MAIN_TEXT(false);
+    ERROR(false, false),
+    NOTICE(false, false),
+    PROMPT(true, true),
+    THOUGHT(true, true),
+    MAIN_TEXT(false, true);
 
     private final boolean fold;
+    private final boolean copy;
 
 }

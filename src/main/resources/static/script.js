@@ -9,6 +9,12 @@ const btnText = document.getElementById('btnText');
 const loader = document.getElementById('loader');
 const langSelect = document.getElementById('language');
 const backToTopBtn = document.getElementById('backToTop');
+const sidebarToggle = document.getElementById('sidebarToggle');
+const sidebar = document.querySelector('.sidebar');
+
+sidebarToggle.addEventListener('click', () => {
+    sidebar.classList.toggle('collapsed');
+});
 
 // --- Incremental rendering state ---
 const advisorState = new Map(); // advisorName -> {count, lastType, lastElement}
@@ -36,7 +42,8 @@ const i18n = {
         noFileChosen: '未选择任何文件',
         sysReady: '系统准备就绪',
         sysWait: '等待输入指令以启动 AI 威胁分析流...',
-        sysInit: '正在初始化分析流，建立 SSE 连接...'
+        sysInit: '正在初始化分析流，建立 SSE 连接...',
+        sidebarToggle: '折叠/展开侧边栏'
     },
     'en-US': {
         typeLabel: 'Analysis Type',
@@ -58,7 +65,8 @@ const i18n = {
         noFileChosen: 'No file chosen',
         sysReady: 'System Ready',
         sysWait: 'Waiting for instructions to start AI threat analysis flow...',
-        sysInit: 'Initializing analysis flow, establishing SSE connection...'
+        sysInit: 'Initializing analysis flow, establishing SSE connection...',
+        sidebarToggle: 'Collapse/Expand Sidebar'
     }
 };
 
@@ -149,8 +157,11 @@ typeSelect.addEventListener('change', () => {
 });
 
 // 2. 渲染函数
+const copySvg = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-copy"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>`;
+const checkSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check"><path d="M20 6 9 17l-5-5"/></svg>`;
+
 function appendAttribute(section, attr, lastType, lastElement) {
-    const { content, type, fold } = attr;
+    const { content, type, fold, copy } = attr;
 
     // Merge decision logic
     let shouldMerge = false;
@@ -172,13 +183,9 @@ function appendAttribute(section, attr, lastType, lastElement) {
 
     // --- Merge into existing element ---
     if (shouldMerge && lastElement) {
-        if (fold && lastElement.classList.contains('collapsible')) {
-            const foldContent = lastElement.querySelector('.fold-content');
-            if (foldContent) {
-                foldContent.textContent += normalizeContent(content);
-            } else {
-                lastElement.textContent += normalizeContent(content);
-            }
+        const textEl = lastElement.querySelector('.fold-content, .content-text');
+        if (textEl) {
+            textEl.textContent += normalizeContent(content);
         } else {
             lastElement.textContent += normalizeContent(content);
         }
@@ -198,6 +205,11 @@ function appendAttribute(section, attr, lastType, lastElement) {
         entry.classList.add('main', 'error');
     }
 
+    // Prepare content text container
+    const contentText = document.createElement('span');
+    contentText.className = fold ? 'fold-content' : 'content-text';
+    contentText.textContent = (prefix || '') + normalizeContent(content);
+
     // Fold/collapsible wrapping
     if (fold) {
         entry.classList.add('collapsible', 'collapsed');
@@ -211,13 +223,25 @@ function appendAttribute(section, attr, lastType, lastElement) {
             e.stopPropagation();
             toggleCollapse(entry);
         });
+    }
 
-        const foldContent = document.createElement('span');
-        foldContent.className = 'fold-content';
-        foldContent.textContent = normalizeContent(content);
-        entry.appendChild(foldContent);
-    } else {
-        entry.textContent = (prefix || '') + normalizeContent(content);
+    entry.appendChild(contentText);
+
+    if (copy) {
+        const copyBtn = document.createElement('span');
+        copyBtn.className = 'copy-btn';
+        copyBtn.innerHTML = copySvg;
+        copyBtn.title = '';
+        copyBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            navigator.clipboard.writeText(contentText.textContent).then(() => {
+                copyBtn.innerHTML = checkSvg;
+                setTimeout(() => {
+                    copyBtn.innerHTML = copySvg;
+                }, 1500);
+            });
+        });
+        entry.appendChild(copyBtn);
     }
 
     section.appendChild(entry);

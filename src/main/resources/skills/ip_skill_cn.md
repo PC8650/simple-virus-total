@@ -21,6 +21,7 @@
 ### 2.2 核心扫描结果
 - `report.attributes.last_analysis_stats`: 引擎扫描汇总。请读取 `malicious`, `suspicious`, `harmless`, `undetected` 的数值。
 - `report.attributes.last_analysis_results`: (Map 结构) 各引擎判定明细。请统计字典键数量，提取 `category` 为 `malicious` 的 `engine_name`、`method` 和 `result`。
+- `report.attributes.last_analysis_date` / `report.attributes.last_modification_date`: 最近扫描时间与 VT 对象更新时间。用于说明数据新鲜度。
 
 ### 2.3 地理与网络归属
 - `report.attributes.asn`: 自治系统编号（ASN）。
@@ -34,7 +35,13 @@
 - `report.attributes.last_https_certificate`: 最近获取的 SSL 证书对象。如果对象为空，跳过本节；如果不为空，按以下路径提取：
     - `report.attributes.last_https_certificate.subject.CN`: 证书绑定的主域名。
     - `report.attributes.last_https_certificate.issuer`: (Map 结构) 证书颁发机构详情。
-    - `report.attributes.last_https_certificate.validity.not_after`: 证书有效期截止日。
+    - `report.attributes.last_https_certificate.validity.not_before` / `report.attributes.last_https_certificate.validity.not_after`: 证书有效期窗口。
+    - `report.attributes.last_https_certificate.first_seen_date`: VT 首次观测到该证书的时间。
+    - `report.attributes.last_https_certificate.thumbprint_sha256`: 证书 SHA256 指纹，用于基础设施复用关联。
+    - `report.attributes.last_https_certificate.signature_algorithm`: 证书签名算法。
+    - `report.attributes.last_https_certificate.public_key.algorithm`: 公钥算法。
+    - `report.attributes.last_https_certificate.public_key.rsa.key_size`: 当公钥算法为 RSA 时的密钥长度。
+    - `report.attributes.last_https_certificate.extensions.key_usage` / `report.attributes.last_https_certificate.extensions.extended_key_usage`: 证书密钥用途列表。如存在，必须清点并遍历。
     - `report.attributes.last_https_certificate.extensions.subject_alternative_name`: (List 结构) SAN 扩展备用域名。**必须清点该数组的长度，提取此 IP 实际托管的所有域名，这可识别整体恶意资产网络**。
 - `report.attributes.last_https_certificate_date`: 获取证书的时间戳。
 
@@ -58,8 +65,8 @@
 
 ### 阶段二：意图行为判定 (一票否决)
 满足以下任一意图特征，必须判定为 **[有害/恶意]**：
-- **[C2 基础设施意图]**：`tags` 包含 `c2`，或 `jarm` 哈希匹配已知 C2 框架，或证书 CN/SAN 指向恶意域名。
-- **[扫描/攻击意图]**：`tags` 包含 `scanner` 或 `brute-force`。
+- **[C2 基础设施意图]**：`tags` 包含 `c2`，或 `jarm` 哈希匹配已知 C2 框架，或证书 CN/SAN 指向恶意域名；并且上述信号至少有一项得到引擎检出、负面信誉、Whois/ASN 上下文或证书复用证据佐证。
+- **[扫描/攻击意图]**：`tags` 包含 `scanner` 或 `brute-force`，并结合引擎检出、负面信誉或 Whois/ASN 上下文指向滥用。
 - **[加密规避意图]**：非标准场景下存在 DoT 端口滥用。
 - **[恶意基础设施意图]**：`as_owner` 属于已知托管恶意服务的主机商且有引擎检出。
 - **[匿名化通信意图]**：`tags` 包含 `tor` 或 `vpn`，结合恶意检出定性为高风险。
@@ -67,6 +74,7 @@
 ### 阶段三：综合定性
 - **[安全]**：`malicious` 为 0，`reputation` 正值，归属于合法运营商，无上述意图特征。
 - **[可疑]**：引擎检出低但归属高风险 ASN、负信誉、异常 JARM 或含 `scanner` 标签。
+- JARM、Tor/VPN/Scanner 标签、证书年龄、弱证书属性和 ASN 信誉均属于辅助指标。不得将其中任意单点作为恶意定性的唯一依据。
 
 ---
 
@@ -92,7 +100,8 @@
 
 ### C. SSL 证书与 JARM 分析
 - 证书绑定域名：{主域名及遍历提取的 report.attributes.last_https_certificate.extensions.subject_alternative_name 数组}
-- 证书颁发机构：{提取 issuer 字典} / 有效期: {validity.not_after}
+- 证书颁发机构：{提取 issuer 字典} / 有效期: {validity.not_before 至 validity.not_after}
+- 证书指纹：{提取 thumbprint_sha256、first_seen_date、signature_algorithm、公钥算法/密钥长度和 key usage 字段}
 - JARM 哈希：{提取 report.attributes.jarm 及其关联意义}
 
 ### D. 信誉与标签分析

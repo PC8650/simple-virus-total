@@ -5,6 +5,7 @@
     --panel-bg: #1a1d29;
     --border-color: #2d3142;
     --accent-blue: #3b82f6;
+    --copy-btn-color: #7a9ec8;
     --text-primary: #f8fafc;
     --text-secondary: #94a3b8;
 }
@@ -28,11 +29,14 @@ body {
     width: 100%;
     padding: 15px;
     gap: 15px;
+    position: relative;
 }
 
 /* Sidebar */
 .sidebar {
     width: 320px;
+    flex-shrink: 0;
+    min-width: 0; /* REQUIRED to allow shrinking below content min-size */
     background: var(--panel-bg);
     border: 1px solid var(--border-color);
     border-radius: 12px;
@@ -40,13 +44,89 @@ body {
     display: flex;
     flex-direction: column;
     gap: 20px;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s ease, margin-right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    z-index: 10; /* Ensure absolute children (toggle button) render above main-content when collapsed */
 }
 
+#scanForm {
+    width: 272px;
+    flex-shrink: 0;
+}
+
+.sidebar.collapsed {
+    width: 0;
+    padding: 0;
+    border-color: transparent;
+    margin-right: -15px; /* negate the flex gap */
+}
+
+/* Hide contents when collapsed */
+.sidebar.collapsed #scanForm,
+.sidebar.collapsed .brand {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.1s ease;
+}
+
+#scanForm, .brand {
+    transition: opacity 0.2s ease 0.1s;
+}
+
+/* Brand H1 styles */
 .brand h1 {
     font-size: 1.2rem;
     font-weight: 700;
     color: var(--accent-blue);
     letter-spacing: -0.02em;
+}
+
+/* Sidebar Toggle Button */
+.sidebar-toggle {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    width: 100%;
+    height: 36px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    outline: none;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+    margin-top: auto; /* Push toggle button to the very bottom */
+}
+
+.sidebar-toggle:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.sidebar-toggle .toggle-arrow {
+    display: inline-block;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Position toggle button on the left screen edge when collapsed */
+.sidebar.collapsed .sidebar-toggle {
+    position: absolute;
+    left: 15px; /* App container padding is 15px */
+    bottom: 30px; /* Adjusted to bottom */
+    background: var(--panel-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 0 6px 6px 0;
+    border-left: none;
+    width: 24px;
+    height: 36px;
+    box-shadow: 2px 0 8px rgba(0,0,0,0.3);
+    z-index: 100;
+}
+
+.sidebar.collapsed .sidebar-toggle .toggle-arrow {
+    transform: rotate(180deg);
 }
 
 .form-group {
@@ -182,6 +262,8 @@ select:focus, input:focus, textarea:focus {
     font-family: 'JetBrains Mono', monospace;
     line-height: 1.5;
     margin-bottom: 4px;
+    position: relative;
+    padding-right: 30px;
 }
 
 .log-entry.non-main {
@@ -194,7 +276,7 @@ select:focus, input:focus, textarea:focus {
     font-size: 0.95rem;
     color: var(--text-primary);
     white-space: pre-wrap;
-    display: inline;
+    display: block;
 }
 
 .log-entry.error {
@@ -228,6 +310,51 @@ select:focus, input:focus, textarea:focus {
 
 .log-entry.collapsible.collapsed .fold-content {
     display: none;
+}
+
+.log-entry.collapsible:not(.collapsed) .fold-content {
+    display: block;
+    margin-top: 8px;
+    padding: 12px;
+    border: 1px solid currentColor;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.02);
+    animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.log-entry .copy-btn {
+    position: absolute;
+    right: 8px;
+    top: 6px;
+    cursor: pointer;
+    opacity: 0.45;
+    transition: opacity 0.2s, transform 0.15s, color 0.2s;
+    user-select: none;
+    color: var(--copy-btn-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+}
+
+.log-entry:hover .copy-btn {
+    opacity: 0.75;
+}
+
+.log-entry .copy-btn:hover {
+    opacity: 1;
+    color: #60a5fa;
+    transform: scale(1.15);
+}
+
+.log-entry .copy-btn:active {
+    transform: scale(0.9);
 }
 
 /* Back to top button */

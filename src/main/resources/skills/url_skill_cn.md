@@ -27,10 +27,10 @@
 - `report.attributes.last_final_url`: URL 最终重定向目标地址。重定向目标与原始 URL 差距极大是典型钓鱼特征。
 - `report.attributes.redirection_chain`: (List 结构) 重定向历史链。清点数组长度，提取每一跳的域名。
 - `report.attributes.last_http_response_code`: 最近一次 HTTP 响应码。
-- `report.attributes.last_http_response_headers`: (Map 结构) HTTP 响应头。清点键值，检查是否有异常的 Content-Type。
+- `report.attributes.last_http_response_headers`: (Map 结构) HTTP 响应头。清点键值，检查异常的 `content-type`、`content-disposition`、`location`、`refresh`，缺失/薄弱的安全响应头，或偏向下载投送的响应特征。
 - `report.attributes.last_http_response_content_length`: 响应内容长度（字节）。
 - `report.attributes.last_http_response_content_sha256`: 响应内容的 SHA256。
-- `report.attributes.last_http_response_cookies`: (Map 结构) 响应设置的 Cookie。清点键的数量。
+- `report.attributes.last_http_response_cookies`: (Map 结构) 响应设置的 Cookie。清点键的数量，并检查 Cookie 名称/值中是否存在会话、认证、追踪或可疑重定向状态线索。
 - `report.attributes.html_meta`: (Map 结构) HTML Meta 标签。清点并重点提取 `title`, `description` 是否在仿冒知名品牌。
 - `report.attributes.title`: 页面标题。
 - `report.attributes.has_content`: URL 是否有内容响应。
@@ -42,11 +42,16 @@
 - `report.attributes.tags`: (List 结构) 标签数组。提取如 `phishing`, `malware`, `spamming`。
 - `report.attributes.tld`: 顶级域名后缀。
 - `report.attributes.targeted_brand`: (Map 结构) 钓鱼目标品牌。**该字段非空即代表强烈恶意信号**。
-- `report.attributes.trackers`: (Map 结构) 历史追踪器记录。清点键值，查找高风险数据采集脚本。
-- `report.attributes.outgoing_links`: (List 结构) 页面包含的外链列表。清点长度。
+- `report.attributes.favicon.raw_md5` / `report.attributes.favicon.dhash`: 网站图标哈希。当其与 URL/域名身份、分类、标题或目标品牌信息冲突时，可作为钓鱼套件或品牌仿冒关联信号。
+- `report.attributes.trackers`: (Map 结构) 历史追踪器记录。清点键值，并遍历每一种追踪器家族。
+    - `report.attributes.trackers.*[*].id`: 追踪器标识。
+    - `report.attributes.trackers.*[*].timestamp`: 追踪器采集时间戳。
+    - `report.attributes.trackers.*[*].url`: 追踪脚本 URL。
+- `report.attributes.outgoing_links`: (List 结构) 页面包含的外链列表。清点长度并逐项遍历；重点标记跨域登录、支付、下载、短链或脚本目的地。
 
 ### 2.5 时间戳
-- `report.attributes.first_submission_date` / `last_submission_date` / `last_analysis_date` / `last_modification_date`: 时间流转节点。
+- `report.attributes.first_submission_date` / `last_submission_date` / `last_analysis_date` / `last_modification_date`: 提交、扫描和对象更新时间线。
+- `report.attributes.times_submitted`: 该 URL 被提交的次数。用于区分首次出现/低频 URL 与反复上报的基础设施。
 
 ---
 
@@ -61,11 +66,12 @@
 - **[仿冒欺骗意图]**：`targeted_brand` 字典非空，或 `categories` 包含 phishing，或 `html_meta` 存在仿冒。
 - **[流量劫持意图]**：`redirection_chain` 数组长度大于1且跨域重定向。
 - **[恶意投送意图]**：`categories` 中被分类为 malware 或 drive-by download。
-- **[隐私窃取意图]**：`trackers` 字典包含高风险追踪脚本。
+- **[隐私窃取意图]**：`trackers` 字典包含高风险追踪脚本，并同时与凭据收集、仿冒信号、欺骗性重定向或可疑 Cookie 存在关联。
 
 ### 阶段三：综合定性
 - **[安全]**：`malicious` 为 0，`reputation` 为正值，无仿冒/重定向特征。
 - **[可疑]**：引擎检出低但具有 TLD 风险、社区负评或重定向链异常。
+- Favicon 相似性、追踪器、Cookie、异常响应头和高提交次数均属于辅助信号。不得将其中任意单点作为恶意定性的唯一依据。
 
 ---
 
@@ -88,14 +94,18 @@
 - 最终落地页：{提取 report.attributes.last_final_url}
 - 重定向链：{遍历 report.attributes.redirection_chain 数组}
 - 响应特征：{提取 HTTP 状态码与响应头字典}
+- Cookie 特征：{清点并检查 report.attributes.last_http_response_cookies}
 - 页面内容：{提取 report.attributes.title 和 report.attributes.html_meta 字典}
 - 品牌仿冒：{评估 report.attributes.targeted_brand 字典}
+- 出站链接：{遍历 report.attributes.outgoing_links，并标记跨域或下载目的地}
 
 ### C. 信誉与关联分析
 - 社区信誉：{评估 report.attributes.reputation}
 - 厂商分类：{遍历 report.attributes.categories 字典}
 - 追踪器风险：{遍历 report.attributes.trackers 字典}
+- Favicon 关联：{如存在，评估 report.attributes.favicon.raw_md5 和 report.attributes.favicon.dhash}
 - TLD 风险：{分析 report.attributes.tld}
+- 提交时间线：{评估 report.attributes.times_submitted 和各时间戳字段}
 
 ### D. 专家最终判决依据
 - {综合引擎检出、重定向链数组及品牌仿冒字段进行论证。}

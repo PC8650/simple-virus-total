@@ -50,6 +50,8 @@ SummaryAdvisor
       "names": ["sample.exe"],
       "first_submission_date": 1710000000,
       "last_submission_date": 1715000000,
+      "last_analysis_date": 1716000000,
+      "last_modification_date": 1716000000,
       "times_submitted": 3,
       "unique_sources": 2,
       "reputation": 0,
@@ -267,6 +269,17 @@ SummaryAdvisor
           "numberOfPackets": 15
         }
       },
+      "bundle_info": {
+        "type": "ZIP",
+        "num_children": 4,
+        "extensions": { "exe": 1, "txt": 3 },
+        "file_types": { "Win32 EXE": 1, "ASCII text": 3 },
+        "uncompressed_size": 10485760,
+        "highest_datetime": "2024-01-01 00:00:00",
+        "lowest_datetime": "2020-01-01 00:00:00",
+        "beginning": "MZ...",
+        "error": null
+      },
       "pe_info": {
         "imphash": "...",
         "entry_point": 4096,
@@ -280,7 +293,9 @@ SummaryAdvisor
       "signature_info": {
         "verified": "Signed",
         "signers": "Example Corp",
-        "signers details": [{ "status": "Valid", "thumbprint": "..." }]
+        "signers details": [{ "status": "Valid", "thumbprint": "..." }],
+        "counter signers details": [{ "status": "Valid", "thumbprint": "..." }],
+        "x509": [{ "thumbprint": "...", "thumbprint_sha256": "...", "thumbprint_md5": "..." }]
       }
     }
   },
@@ -368,6 +383,7 @@ SummaryAdvisor
       "last_analysis_results": {
         "Phishtank": {
           "engine_name": "Phishtank",
+          "method": "blacklist",
           "category": "malicious",
           "result": "phishing"
         }
@@ -388,10 +404,12 @@ SummaryAdvisor
       "tags": ["phishing"],
       "tld": "example",
       "targeted_brand": { "engine": "BrandX" },
-      "trackers": { "GoogleAnalytics": [{ "url": "..." }] },
+      "favicon": { "raw_md5": "...", "dhash": "..." },
+      "trackers": { "GoogleAnalytics": [{ "id": "UA-000000", "timestamp": 1715000000, "url": "..." }] },
       "outgoing_links": ["https://other.example/"],
       "first_submission_date": 1710000000,
       "last_submission_date": 1715000000,
+      "times_submitted": 2,
       "last_analysis_date": 1716000000,
       "last_modification_date": 1716000000
     }
@@ -415,6 +433,8 @@ SummaryAdvisor
     "type": "ip_address",
     "attributes": {
       "last_analysis_stats": { "malicious": 2, "suspicious": 0, "undetected": 70, "harmless": 0 },
+      "last_analysis_date": 1716000000,
+      "last_modification_date": 1716000000,
       "last_analysis_results": {
         "AlienVault": {
           "engine_name": "AlienVault",
@@ -432,8 +452,14 @@ SummaryAdvisor
       "last_https_certificate": {
         "subject": { "CN": "bad.example" },
         "issuer": { "CN": "Let's Encrypt" },
-        "validity": { "not_after": "2026-12-31T23:59:59Z" },
+        "validity": { "not_before": "2026-01-01T00:00:00Z", "not_after": "2026-12-31T23:59:59Z" },
+        "first_seen_date": 1710000000,
+        "thumbprint_sha256": "...",
+        "signature_algorithm": "sha256RSA",
+        "public_key": { "algorithm": "RSA", "rsa": { "key_size": 2048 } },
         "extensions": {
+          "key_usage": ["digitalSignature"],
+          "extended_key_usage": ["serverAuth"],
           "subject_alternative_name": ["bad.example", "*.bad.example"]
         }
       },
@@ -465,6 +491,8 @@ SummaryAdvisor
     "type": "domain",
     "attributes": {
       "last_analysis_stats": { "malicious": 4, "suspicious": 1, "undetected": 65, "harmless": 0 },
+      "last_analysis_date": 1716000000,
+      "last_modification_date": 1716000000,
       "last_analysis_results": {
         "alphaMountain": {
           "engine_name": "alphaMountain",
@@ -483,14 +511,25 @@ SummaryAdvisor
       "whois": "Domain Name: evil.example ...",
       "whois_date": 1710000000,
       "last_dns_records": [
-        { "type": "A", "value": "1.2.3.4", "ttl": 60 }
+        { "type": "A", "value": "1.2.3.4", "ttl": 60 },
+        { "type": "MX", "value": "mail.evil.example", "ttl": 300, "priority": 10 },
+        { "type": "CAA", "value": "letsencrypt.org", "ttl": 300, "flag": 0, "tag": "issue" },
+        { "type": "SOA", "value": "ns1.evil.example", "ttl": 300, "serial": 2024010101, "refresh": 3600, "retry": 600, "expire": 604800, "minimum": 300, "rname": "admin.evil.example" }
       ],
       "last_dns_records_date": 1715000000,
       "last_https_certificate": {
         "subject": { "CN": "evil.example" },
         "issuer": { "O": "CA Corp" },
-        "validity": { "not_after": "2026-06-01" },
-        "extensions": { "subject_alternative_name": ["evil.example"] }
+        "validity": { "not_before": "2025-06-01", "not_after": "2026-06-01" },
+        "first_seen_date": 1710000000,
+        "thumbprint_sha256": "...",
+        "signature_algorithm": "sha256RSA",
+        "public_key": { "algorithm": "RSA", "rsa": { "key_size": 2048 } },
+        "extensions": {
+          "key_usage": ["digitalSignature"],
+          "extended_key_usage": ["serverAuth"],
+          "subject_alternative_name": ["evil.example"]
+        }
       },
       "last_https_certificate_date": 1715000000,
       "jarm": "29ad3b...",
@@ -542,6 +581,8 @@ SummaryAdvisor
 | `report.attributes.reputation` | 社区信誉分（负值表示恶评居多） | |
 | `report.attributes.tags` | 静态标签（如 packed、peexe） | |
 | `report.attributes.type_tags` | 文件类型相关标签 | |
+| `report.attributes.last_analysis_date` | 最近扫描时间 | 用于判断数据新鲜度 |
+| `report.attributes.last_modification_date` | VT 对象最后修改时间 | |
 | `report.attributes.last_analysis_stats` | 各引擎检出数量汇总 | |
 | `report.attributes.last_analysis_stats.malicious` | 判定为恶意的引擎数 | |
 | `report.attributes.last_analysis_stats.suspicious` | 判定为可疑的引擎数 | |
@@ -566,7 +607,8 @@ SummaryAdvisor
 | `report.attributes.pdf_info` | Adobe PDF 结构与内嵌动作信息 | 对象含 `javascript` 计数等 |
 | `report.attributes.powershell_info` | PowerShell 脚本执行特征 | 对象含 `cmdlets` 等 |
 | `report.attributes.html_info` | HTML 网页结构信息 | 对象含 `scripts`, `iframes` 等 |
-| `report.attributes.javascript_info` | JS 或 PDF 内嵌脚本提取的特征标签 | 序列化可能为 `java_scriptInfo` |
+| `report.attributes.javascript_info` | JS 或 PDF 内嵌脚本提取的特征标签 | VT 官方字段；DTO 使用 `@SerializedName("javascript_info")` |
+| `report.attributes.javascript_info.tags` | JavaScript 特征标签 | 如 eval、unescape、obfuscated |
 | `report.attributes.class_info` | Java Class 字节码结构信息 | 对象含 `name`, `methods` 等 |
 | `report.attributes.jar_info` | Java JAR 包结构信息 | 对象含 `filenames`, `files_by_type` 等 |
 | `report.attributes.elf_info` | Linux ELF 二进制执行文件结构 | 对象含 `header`, `import_list` 等 |
@@ -576,6 +618,16 @@ SummaryAdvisor
 | `report.attributes.traffic_inspection` | PCAP 网络抓包（HTTP/Pcap） | 对象含 `http` 列表 |
 | `report.attributes.suricata` | PCAP 命中的 Suricata 规则字典 | Map |
 | `report.attributes.wireshark` | PCAP 的 DNS 解析及流量统计信息 | 对象含 `dns`, `pcap` |
+| `report.attributes.bundle_info` | 压缩归档/捆绑包信息 | 目标为压缩文件时重点分析 |
+| `report.attributes.bundle_info.type` | 归档/容器类型 | 与扩展名、type_tags 交叉验证 |
+| `report.attributes.bundle_info.num_children` | 归档内文件/目录数量 | |
+| `report.attributes.bundle_info.extensions` | 归档内扩展名计数 | Map，需遍历全部 key |
+| `report.attributes.bundle_info.file_types` | 归档内文件类型计数 | Map，和扩展名分布对比 |
+| `report.attributes.bundle_info.uncompressed_size` | 未压缩内容总大小 | 用于估算压缩比 |
+| `report.attributes.bundle_info.highest_datetime` | 归档内最新时间戳 | 元数据异常线索 |
+| `report.attributes.bundle_info.lowest_datetime` | 归档内最早时间戳 | |
+| `report.attributes.bundle_info.beginning` | 解压后头部/起始字节 | 可辅助识别内部载荷 |
+| `report.attributes.bundle_info.error` | 解压或解析错误 | 需记录但不能单独定恶意 |
 | `report.attributes.pe_info.imphash` | PE 导入表哈希（家族关联） | |
 | `report.attributes.pe_info.entry_point` | 程序入口点偏移 | |
 | `report.attributes.pe_info.timestamp` | PE 编译时间戳 | |
@@ -585,9 +637,14 @@ SummaryAdvisor
 | `report.attributes.pe_info.import_list` | 导入 DLL/函数列表 | List |
 | `report.attributes.pe_info.exports` | 导出函数列表 | |
 | `report.attributes.signature_info.verified` | 数字签名总体状态 | 如 Signed / Unsigned |
-| `report.attributes.signature_info.status` | 证书/签名状态说明 | DTO 多在 `signers details[].status` |
 | `report.attributes.signature_info.signers` | 签名者名称 | |
-| `report.attributes.signature_info.thumbprint` | 证书指纹 | DTO 多在 `signers details[].thumbprint` |
+| `report.attributes.signature_info.signers details[*].status` | 每个签名者证书/签名状态 | |
+| `report.attributes.signature_info.signers details[*].thumbprint` | 每个签名者证书指纹 | |
+| `report.attributes.signature_info.counter signers details[*].status` | 每个副署名者证书/签名状态 | |
+| `report.attributes.signature_info.counter signers details[*].thumbprint` | 每个副署名者证书指纹 | |
+| `report.attributes.signature_info.x509[*].thumbprint` | x509 证书链指纹 | |
+| `report.attributes.signature_info.x509[*].thumbprint_sha256` | x509 证书链 SHA256 指纹 | |
+| `report.attributes.signature_info.x509[*].thumbprint_md5` | x509 证书链 MD5 指纹 | |
 | `behaviour` | 各沙箱动态行为报告列表 | FILE 专用；无沙箱时为 null |
 | `behaviour[i].attributes.registry_keys_set` | 写入/修改的注册表项 | 持久化、策略篡改线索 |
 | `behaviour[i].attributes.services_created` | 创建的系统服务 | |
@@ -635,6 +692,7 @@ SummaryAdvisor
 | `report.attributes.last_analysis_stats.undetected` | 未检出的引擎数 | |
 | `report.attributes.last_analysis_results` | 各引擎详细结果 | Map |
 | `report.attributes.last_analysis_results.*.engine_name` | 引擎名称 | |
+| `report.attributes.last_analysis_results.*.method` | 检测方法 | |
 | `report.attributes.last_analysis_results.*.result` | 检出名称/分类结果 | |
 | `report.attributes.last_analysis_results.*.category` | 结果分类 | |
 | `report.attributes.last_final_url` | 重定向后的最终 URL | 与原始 URL 差异大时需警惕钓鱼 |
@@ -653,12 +711,18 @@ SummaryAdvisor
 | `report.attributes.tags` | 标签列表 | |
 | `report.attributes.tld` | 顶级域名后缀 | |
 | `report.attributes.targeted_brand` | 钓鱼目标品牌信息 | 非空为强恶意信号 |
+| `report.attributes.favicon.raw_md5` | 网站图标 MD5 | 钓鱼套件或品牌仿冒关联 |
+| `report.attributes.favicon.dhash` | 网站图标差分哈希 | |
 | `report.attributes.trackers` | 页面追踪脚本历史 | Map |
+| `report.attributes.trackers.*[*].id` | 追踪器标识 | `*` 为 tracker 家族 |
+| `report.attributes.trackers.*[*].timestamp` | 追踪器采集时间 | |
+| `report.attributes.trackers.*[*].url` | 追踪脚本 URL | |
 | `report.attributes.outgoing_links` | 页内外链列表 | List |
 | `report.attributes.first_submission_date` | 首次提交 VT 时间 | |
 | `report.attributes.last_submission_date` | 最近提交 VT 时间 | |
 | `report.attributes.last_analysis_date` | 最近扫描时间 | |
 | `report.attributes.last_modification_date` | 对象最后修改时间 | |
+| `report.attributes.times_submitted` | URL 累计提交次数 | 区分首次出现与反复上报基础设施 |
 
 ---
 
@@ -679,6 +743,8 @@ SummaryAdvisor
 | `report.attributes.last_analysis_results.*.method` | 检测方法 | |
 | `report.attributes.last_analysis_results.*.result` | 检出结果 | |
 | `report.attributes.last_analysis_results.*.category` | 结果分类 | |
+| `report.attributes.last_analysis_date` | 最近扫描时间 | 用于判断数据新鲜度 |
+| `report.attributes.last_modification_date` | VT 对象最后修改时间 | |
 | `report.attributes.asn` | 自治系统号（ASN） | |
 | `report.attributes.as_owner` | AS 所属运营商/组织 | |
 | `report.attributes.network` | 所属网段（CIDR） | |
@@ -688,7 +754,15 @@ SummaryAdvisor
 | `report.attributes.last_https_certificate` | 最近关联的 HTTPS 证书对象 | null 时 Skill 要求跳过 |
 | `report.attributes.last_https_certificate.subject.CN` | 证书主体主域名 | |
 | `report.attributes.last_https_certificate.issuer` | 证书颁发者信息 | |
+| `report.attributes.last_https_certificate.validity.not_before` | 证书生效时间 | |
 | `report.attributes.last_https_certificate.validity.not_after` | 证书过期时间 | |
+| `report.attributes.last_https_certificate.first_seen_date` | VT 首次观测该证书的时间 | |
+| `report.attributes.last_https_certificate.thumbprint_sha256` | 证书 SHA256 指纹 | 基础设施复用关联 |
+| `report.attributes.last_https_certificate.signature_algorithm` | 证书签名算法 | |
+| `report.attributes.last_https_certificate.public_key.algorithm` | 公钥算法 | |
+| `report.attributes.last_https_certificate.public_key.rsa.key_size` | RSA 公钥长度 | 公钥算法为 RSA 时存在 |
+| `report.attributes.last_https_certificate.extensions.key_usage` | 证书密钥用途 | List |
+| `report.attributes.last_https_certificate.extensions.extended_key_usage` | 证书扩展密钥用途 | List |
 | `report.attributes.last_https_certificate.extensions.subject_alternative_name` | 证书 SAN 域名列表 | 可反映 IP 托管的多域名资产 |
 | `report.attributes.last_https_certificate_date` | VT 获取该证书的时间 | |
 | `report.attributes.jarm` | TLS JARM 指纹 | 可与 C2 框架特征关联 |
@@ -717,6 +791,8 @@ SummaryAdvisor
 | `report.attributes.last_analysis_results.*.method` | 检测方法 | |
 | `report.attributes.last_analysis_results.*.result` | 检出结果 | |
 | `report.attributes.last_analysis_results.*.category` | 结果分类 | |
+| `report.attributes.last_analysis_date` | 最近扫描时间 | 用于判断数据新鲜度 |
+| `report.attributes.last_modification_date` | VT 对象最后修改时间 | |
 | `report.attributes.categories` | 厂商安全分类 | 如 phishing、c2 |
 | `report.attributes.tags` | 标签列表 | 如 dga、malicious |
 | `report.attributes.tld` | 顶级域名后缀 | |
@@ -730,11 +806,28 @@ SummaryAdvisor
 | `report.attributes.last_dns_records[*].type` | 记录类型 | 如 A、MX、CNAME |
 | `report.attributes.last_dns_records[*].value` | 记录值 | 如 IP、邮件服务器 |
 | `report.attributes.last_dns_records[*].ttl` | 缓存 TTL（秒） | 极短可能为 Fast Flux |
+| `report.attributes.last_dns_records[*].priority` | MX/SRV 优先级 | |
+| `report.attributes.last_dns_records[*].flag` | CAA 标志位 | |
+| `report.attributes.last_dns_records[*].tag` | CAA tag | 如 issue、issuewild |
+| `report.attributes.last_dns_records[*].serial` | SOA 序列号 | |
+| `report.attributes.last_dns_records[*].refresh` | SOA refresh | |
+| `report.attributes.last_dns_records[*].retry` | SOA retry | |
+| `report.attributes.last_dns_records[*].expire` | SOA expire | |
+| `report.attributes.last_dns_records[*].minimum` | SOA minimum TTL | |
+| `report.attributes.last_dns_records[*].rname` | SOA 负责人邮箱式字段 | |
 | `report.attributes.last_dns_records_date` | DNS 记录采集时间 | |
 | `report.attributes.last_https_certificate` | 最近关联的 HTTPS 证书 | |
 | `report.attributes.last_https_certificate.subject.CN` | 证书主体主域名 | |
 | `report.attributes.last_https_certificate.issuer` | 证书颁发者 | |
+| `report.attributes.last_https_certificate.validity.not_before` | 证书生效时间 | |
 | `report.attributes.last_https_certificate.validity.not_after` | 证书过期时间 | |
+| `report.attributes.last_https_certificate.first_seen_date` | VT 首次观测该证书的时间 | |
+| `report.attributes.last_https_certificate.thumbprint_sha256` | 证书 SHA256 指纹 | 基础设施复用关联 |
+| `report.attributes.last_https_certificate.signature_algorithm` | 证书签名算法 | |
+| `report.attributes.last_https_certificate.public_key.algorithm` | 公钥算法 | |
+| `report.attributes.last_https_certificate.public_key.rsa.key_size` | RSA 公钥长度 | 公钥算法为 RSA 时存在 |
+| `report.attributes.last_https_certificate.extensions.key_usage` | 证书密钥用途 | List |
+| `report.attributes.last_https_certificate.extensions.extended_key_usage` | 证书扩展密钥用途 | List |
 | `report.attributes.last_https_certificate.extensions.subject_alternative_name` | 证书 SAN 域名列表 | |
 | `report.attributes.last_https_certificate_date` | VT 获取证书的时间 | |
 | `report.attributes.jarm` | TLS JARM 指纹 | |
@@ -742,6 +835,11 @@ SummaryAdvisor
 | `report.attributes.reputation` | 社区信誉分 | |
 | `report.attributes.total_votes` | 社区投票 | |
 | `report.attributes.crowdsourced_context` | 众包安全研究上下文 | List |
+| `report.attributes.crowdsourced_context[*].title` | 众包上下文标题 | |
+| `report.attributes.crowdsourced_context[*].severity` | 众包上下文严重性 | |
+| `report.attributes.crowdsourced_context[*].details` | 众包上下文详情 | |
+| `report.attributes.crowdsourced_context[*].source` | 众包上下文来源 | |
+| `report.attributes.crowdsourced_context[*].timestamp` | 众包上下文时间戳 | |
 | `report.attributes.favicon.raw_md5` | 网站图标 MD5 | 钓鱼仿冒比对 |
 | `report.attributes.favicon.dhash` | 网站图标差分哈希 | |
 
@@ -752,7 +850,7 @@ SummaryAdvisor
 | 项 | 说明 |
 | :--- | :--- |
 | `ReportContent.type` | 枚举名 `FILE`/`URL`/…，与 `report.type`（VT 对象类型字符串）不同 |
-| `signature_info.status` / `thumbprint` | Skill 写在 `signature_info` 顶层；DTO 主要落在 `signers details[]` 子项 |
+| 签名状态/指纹的旧顶层写法 | 已移除；当前 Skill 使用 `signers details[]`、`counter signers details[]` 和 `x509[]` 下的真实 DTO 字段 |
 | `behaviour` / `mitre` | 仅 FILE 有值；URL/IP/DOMAIN 为 `null` |
 | `mitre` 结构 | `Map<沙箱名, { tactics: [...] }>`，非 VT 原始 API 的 `{ data: { ... } }` 包装（`VtResult.data` 已剥离） |
 | 运行时 Skill 文件 | `SkillEnum` 加载 `skills/file_skill.md` 等英文版；`*_cn.md` 未接入枚举 |

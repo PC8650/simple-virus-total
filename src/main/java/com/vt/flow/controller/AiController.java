@@ -43,8 +43,8 @@ public class AiController {
     @Operation(summary = "发起流式分析任务", description = "提交文件/域名/IP/URL，并以 SSE 流的形式实时推送分析节点的详细专家报告。")
     @PostMapping(path = "/flow", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public ResponseEntity<SseEmitter> vtFlow(@ModelAttribute InputContent inputContent) {
-        // 流程限制最长20分钟
-        SseEmitter emitter = new SseEmitter(1200000L);
+        // 流程限制最长40分钟
+        SseEmitter emitter = new SseEmitter(2400000L);
 
         // 初始化参数
         // chainContent 会被浅拷贝再传入流程，因此String这种不可变又需要被外部感知的对象需要单独处理

@@ -266,8 +266,8 @@ public record FileReportResp(
                     """)
             Map<String, String> packers,
 
-            @SerializedName("java_scriptInfo")
-            @Schema(name = "java_scriptInfo", description = "从 Javascript 文件中提取的信息")
+            @SerializedName("javascript_info")
+            @Schema(name = "javascript_info", description = "从 Javascript 文件中提取的信息")
             JavascriptInfo javascriptInfo,
 
             @SerializedName("pdf_info")

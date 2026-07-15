@@ -28,10 +28,12 @@ public class FlowResp{
             @Schema(description = "类型")
             String type,
             @Schema(description = "是否折叠")
-            boolean fold
+            boolean fold,
+            @Schema(description = "是否复制")
+            boolean copy
     ){
         public static Attributes init(String advisor, String content, ContentEnum contentEnum) {
-            return new Attributes(advisor, content, contentEnum.name(), contentEnum.isFold());
+            return new Attributes(advisor, content, contentEnum.name(), contentEnum.isFold(), contentEnum.isCopy());
         }
     }
 

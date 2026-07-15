@@ -54,24 +54,24 @@ public class ExternalSkillManager implements InitializingBean {
      *
      * @param content VT 汇总内容
      */
-    public String externalGuidBuild(String content) {
+    public String externalGuidBuild(String lang, String content) {
         if (!externalSkillConfig.isEnable() || !externalSkillConfig.effectiveLimit() || TAG_MAP.isEmpty()) return "";
 
         List<ExternalSkillTag.ExternalSkillInfo> skills = matchTop(content, externalSkillConfig.getTopLimit());
 
         StringBuilder guid = new StringBuilder();
-        guid.append(MessageUtils.getMessage(MsgEnum.ENHANCEMENT_HEADER.getKey()));
+        guid.append(MessageUtils.getMessage(lang, MsgEnum.ENHANCEMENT_HEADER));
 
         for (ExternalSkillTag.ExternalSkillInfo skill : skills) {
             // 1. 加载主 Skill 文件
-            boolean success = appendFileContent(guid, skill.path(), true);
+            boolean success = appendFileContent(lang, guid, skill.path(), true);
 
             if (!success) continue;
 
             // 2. 加载关联的参考文件 (references)
             if (skill.hasReference()) {
                 for (String refPath : skill.references()) {
-                    appendFileContent(guid, refPath, false);
+                    appendFileContent(lang, guid, refPath, false);
                 }
             }
             guid.append("\n---\n\n");
@@ -175,7 +175,7 @@ public class ExternalSkillManager implements InitializingBean {
     /**
      *读取、清理并追加文件内容
      */
-    private boolean appendFileContent(StringBuilder sb, String path, boolean isPrimary) {
+    private boolean appendFileContent(String lang, StringBuilder sb, String path, boolean isPrimary) {
         try {
             File file = new File(path);
             String content = Files.readString(file.toPath(), StandardCharsets.UTF_8);
@@ -186,10 +186,10 @@ public class ExternalSkillManager implements InitializingBean {
             if (isPrimary) {
                 // 主文件标题：使用父目录名作为技能名，更具可读性
                 String skillName = file.getParentFile().getName();
-                sb.append(MessageUtils.getMessage(MsgEnum.ENHANCEMENT_GUIDE_TITLE.getKey(), skillName));
+                sb.append(MessageUtils.getMessage(lang, MsgEnum.ENHANCEMENT_GUIDE_TITLE, skillName));
             } else {
                 // 参考文件标题
-                sb.append(MessageUtils.getMessage(MsgEnum.ENHANCEMENT_REFERENCE_TITLE.getKey(), file.getName()));
+                sb.append(MessageUtils.getMessage(lang, MsgEnum.ENHANCEMENT_REFERENCE_TITLE, file.getName()));
             }
 
             sb.append(body.trim()).append("\n\n");
